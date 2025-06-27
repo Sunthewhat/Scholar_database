@@ -1,0 +1,40 @@
+services:
+  # MongoDB Database
+  mongodb:
+    image: mongo:7.0
+    container_name: mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      # Set the root username and password
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password123
+      # Optional: Create a specific database on startup
+      MONGO_INITDB_DATABASE: scholardb
+    volumes:
+      # Persist data to local directory
+      - mongodb_data:/data/db
+      # Optional: Mount initialization scripts
+      # - ./mongo-init:/docker-entrypoint-initdb.d
+
+# Define volumes for data persistence
+volumes:
+  mongodb_data:
+    driver: local
+
+# For production use, consider:
+# 1. Using secrets instead of environment variables
+# 2. Setting up replica sets
+# 3. Configuring backup strategies
+# 4. Using specific MongoDB versions instead of latest
+
+# Example with secrets (uncomment to use):
+# secrets:
+#   mongodb_root_password:
+#     file: ./secrets/mongodb_root_password.txt
+
+# Example environment file (.env) content:
+# MONGO_ROOT_USERNAME=admin
+# MONGO_ROOT_PASSWORD=your_secure_password
+# MONGO_DATABASE=your_app_name
