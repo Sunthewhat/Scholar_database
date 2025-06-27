@@ -1,6 +1,7 @@
 import { FC, ReactNode } from 'react';
 import Image from 'next/image';
 import { NavBar } from '../home/nav';
+import { usePathname } from 'next/navigation';
 
 type HomeLayoutProps = {
 	children: ReactNode;
@@ -9,6 +10,10 @@ type HomeLayoutProps = {
 const HomeLayout: FC<HomeLayoutProps> = ({ children }) => {
 	const rows = 10;
 	const columns = 15;
+
+	const path = usePathname();
+
+	const isTemp = path.startsWith('/temp');
 
 	return (
 		<main className='h-screen w-screen bg-gradient-to-b from-violet-gd0 to-violet-gd100 overflow-hidden relative'>
@@ -38,7 +43,7 @@ const HomeLayout: FC<HomeLayoutProps> = ({ children }) => {
 					</div>
 				))}
 			</div>
-			<NavBar />
+			{!isTemp && <NavBar />}
 			<div className='relative z-10 w-full h-full'>{children}</div>
 		</main>
 	);

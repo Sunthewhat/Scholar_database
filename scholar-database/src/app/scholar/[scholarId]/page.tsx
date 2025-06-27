@@ -31,6 +31,10 @@ const ScholarDetailPage: FC = () => {
 	const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 	const [studentToDelete, setStudentToDelete] = useState<Student | null>(null);
 	const [isDeleting, setIsDeleting] = useState(false);
+	const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
+	const [generatedLink, setGeneratedLink] = useState<string>('');
+	const [isGeneratingLink, setIsGeneratingLink] = useState(false);
+	const [linkExpiration, setLinkExpiration] = useState<string>('');
 
 	// Fetch students for this scholar
 	useEffect(() => {
@@ -115,16 +119,60 @@ const ScholarDetailPage: FC = () => {
 		setStudentToDelete(null);
 	};
 
+	const handleGetStudentLink = async (student: Student) => {
+		try {
+			setIsGeneratingLink(true);
+			const response = await Axios.post('/student/temp-permission/generate', {
+				student_id: student._id,
+				expires_in: 3600 * 24 * 7, // 24 hours
+			});
+
+			if (response.status === 200 && response.data.success) {
+				const { token, expires_at } = response.data.data;
+
+				// Create the complete link with token
+				const baseUrl = window.location.origin;
+				const fullLink = `${baseUrl}/temp/student/${student._id}/form?token=${token}`;
+
+				setGeneratedLink(fullLink);
+				setLinkExpiration(new Date(expires_at).toLocaleString('th-TH'));
+				setIsLinkModalOpen(true);
+			} else {
+				setError(response.data.msg || 'เกิดข้อผิดพลาดในการสร้างลิ้งค์');
+			}
+		} catch (err: any) {
+			console.error('Error generating student link:', err);
+			setError(err.response?.data?.msg || 'เกิดข้อผิดพลาดในการสร้างลิ้งค์');
+		} finally {
+			setIsGeneratingLink(false);
+		}
+	};
+
 	const handleStudentCardClick = (studentId: string) => {
 		router.push(`/student/${studentId}/form`);
+	};
+
+	const handleCloseLinkModal = () => {
+		setIsLinkModalOpen(false);
+		setGeneratedLink('');
+		setLinkExpiration('');
+	};
+
+	const handleCopyLink = async () => {
+		try {
+			await navigator.clipboard.writeText(generatedLink);
+			// You could add a toast notification here if needed
+		} catch (err) {
+			console.error('Failed to copy link:', err);
+		}
 	};
 
 	const getStatusDisplay = (status: string) => {
 		switch (status) {
 			case 'completed':
-				return { text: 'สมบูรณ์', color: '' };
+				return { text: 'สมบูรณ์', color: 'bg-green' };
 			case 'incomplete':
-				return { text: 'ไม่สมบูรณ์', color: '' };
+				return { text: 'ไม่สมบูรณ์', color: 'bg-red' };
 			default:
 				return { text: status, color: '' };
 		}
@@ -271,9 +319,37 @@ const ScholarDetailPage: FC = () => {
 													</button>
 												</div>
 											</div>
-											<p className={statusInfo.color + ' col-span-1'}>
-												{statusInfo.text}
-											</p>
+											<div className='col-span-1 flex justify-center'>
+												<div
+													className={
+														statusInfo.color +
+														' rounded-full w-32 px-4 text-base py-2 text-white'
+													}
+												>
+													{statusInfo.text}
+												</div>
+												<button
+													onClick={(e) => {
+														e.stopPropagation();
+														handleGetStudentLink(student);
+													}}
+													title='สร้างลิ้งค์สำหรับส่งให้นักเรียน'
+													className='absolute right-4 top-1/2 transform -translate-y-1/2'
+													disabled={isGeneratingLink}
+												>
+													{isGeneratingLink ? (
+														<div className='w-5 h-5 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600'></div>
+													) : (
+														<Image
+															src='/assets/link.svg'
+															alt='link'
+															height={1}
+															width={1}
+															className='w-5'
+														/>
+													)}
+												</button>
+											</div>
 											<div className='absolute left-2/3 top-1/2 transform -translate-x-1/2 -translate-y-1/2 w-px h-3/4 bg-softblack'></div>
 										</div>
 									);
@@ -314,6 +390,41 @@ const ScholarDetailPage: FC = () => {
 							{isDeleting ? 'กำลังลบ...' : 'ยืนยัน'}
 						</button>
 					</div>
+				</div>
+			</Modal>
+
+			{/* Student Link Modal */}
+			<Modal isOpen={isLinkModalOpen} onClose={handleCloseLinkModal} size='md'>
+				<div className='text-center py-4'>
+					<p className='text-black font-semibold text-lg mb-6'>ลิ้งค์สำหรับนักเรียน</p>
+					<div className='bg-gray-50 border border-gray-200 rounded-lg p-4 mb-4'>
+						<p className='text-sm text-gray-600 mb-2'>
+							ลิ้งค์นี้จะหมดอายุเมื่อ: {linkExpiration}
+						</p>
+						<div className='flex items-center gap-2'>
+							<input
+								type='text'
+								value={generatedLink}
+								readOnly
+								className='flex-1 px-3 py-2 border border-gray-300 rounded-md bg-white text-sm'
+							/>
+							<button
+								onClick={handleCopyLink}
+								className='px-4 py-2 bg-violet-1 text-white rounded-md hover:bg-blue-600 transition-colors text-sm'
+							>
+								คัดลอก
+							</button>
+						</div>
+					</div>
+					<p className='text-sm text-gray-500 mb-6'>
+						ส่งลิ้งค์นี้ให้นักเรียนเพื่อให้สามารถกรอกข้อมูลในฟอร์มได้
+					</p>
+					<button
+						onClick={handleCloseLinkModal}
+						className='px-6 py-2 bg-red w-32 font-semibold text-white rounded-lg hover:bg-gray-600 transition-colors'
+					>
+						ปิด
+					</button>
 				</div>
 			</Modal>
 		</AuthWrapper>
