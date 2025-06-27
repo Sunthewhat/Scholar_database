@@ -4,7 +4,7 @@ type StudentType = {
 	scholar_id: mongoose.Types.ObjectId;
 	form_data: Record<string, any>;
 	fullname?: string;
-	status: 'created' | 'draft' | 'submitted' | 'approved' | 'rejected';
+	status: 'incomplete' | 'completed';
 	submitted_at?: Date;
 	created_at: Date;
 	updated_at: Date;
@@ -17,9 +17,9 @@ const studentSchema = new mongoose.Schema<StudentType>(
 		fullname: { type: String },
 		status: {
 			type: String,
-			enum: ['created', 'draft', 'submitted', 'approved', 'rejected'],
+			enum: ['incomplete', 'completed'],
 			required: true,
-			default: 'created',
+			default: 'incomplete',
 		},
 		submitted_at: { type: Date },
 		created_at: { type: Date, required: true, default: Date.now },
@@ -44,7 +44,7 @@ const StudentModel = {
 	getByScholar: async (scholarId: string) => {
 		return await Student.find({ scholar_id: scholarId }).populate('scholar_id');
 	},
-	getByStatus: async (status: 'created' | 'draft' | 'submitted' | 'approved' | 'rejected') => {
+	getByStatus: async (status: 'incomplete' | 'completed') => {
 		return await Student.find({ status }).populate('scholar_id');
 	},
 	update: async (id: string, data: Partial<Omit<Student, '_id' | 'created_at'>>) => {
@@ -59,10 +59,10 @@ const StudentModel = {
 	},
 	setStatus: async (
 		id: string,
-		status: 'created' | 'draft' | 'submitted' | 'approved' | 'rejected'
+		status: 'incomplete' | 'completed'
 	) => {
 		const updateData: any = { status, updated_at: new Date() };
-		if (status === 'submitted') {
+		if (status === 'completed') {
 			updateData.submitted_at = new Date();
 		}
 		return await Student.findByIdAndUpdate(id, updateData, {
@@ -73,7 +73,7 @@ const StudentModel = {
 	submitForm: async (id: string, formData: Record<string, any>, fullname?: string) => {
 		const updateData: any = {
 			form_data: formData,
-			status: 'submitted',
+			status: 'completed',
 			submitted_at: new Date(),
 			updated_at: new Date(),
 		};
@@ -93,6 +93,111 @@ const StudentModel = {
 	},
 	deleteByScholar: async (scholarId: string) => {
 		return await Student.deleteMany({ scholar_id: scholarId });
+	},
+
+	checkFormCompletion: async (studentId: string, scholarFields: any[]): Promise<boolean> => {
+		const student = await Student.findById(studentId);
+		if (!student) return false;
+
+		const formData = student.form_data || {};
+
+		for (const field of scholarFields) {
+			const fieldData = formData[field._id] || {};
+			
+			// Check ALL questions regardless of required flag - all fields are considered required
+			for (const question of field.questions) {
+				const value = fieldData[question.question_id];
+				
+				// Check if the value is empty or null
+				if (value === null || value === undefined || value === '') {
+					return false;
+				}
+				
+				// For arrays (checkboxes, multiple files), check if they have content
+				if (Array.isArray(value) && value.length === 0) {
+					return false;
+				}
+				
+				// For radio buttons with "other" option, check if other text is provided
+				if (value === 'other' && question.allow_other) {
+					const otherValue = fieldData[`${question.question_id}_other`];
+					if (!otherValue || otherValue.trim() === '') {
+						return false;
+					}
+				}
+				
+				// For checkboxes with "other" option, check if other text is provided when "other" is selected
+				if (Array.isArray(value) && value.includes('other') && question.allow_other) {
+					const otherValue = fieldData[`${question.question_id}_other`];
+					if (!otherValue || otherValue.trim() === '') {
+						return false;
+					}
+				}
+				
+				// For table questions, check if ALL cells are filled
+				if (question.question_type === 'table' && question.table_config) {
+					const tableData = value || {};
+					const { rows, columns } = question.table_config;
+					
+					// Check all data cells (excluding headers)
+					for (let row = 1; row < rows; row++) {
+						for (let col = 1; col < columns; col++) {
+							const cellKey = `${row}_${col}`;
+							const cellValue = tableData[cellKey];
+							if (!cellValue || cellValue.trim() === '') {
+								return false;
+							}
+						}
+					}
+				}
+			}
+		}
+		
+		return true;
+	},
+
+	updateAllStudentStatusForScholar: async (scholarId: string, scholarFields: any[]): Promise<void> => {
+		try {
+			// Get all students for this scholar
+			const students = await Student.find({ scholar_id: scholarId });
+			
+			const bulkOperations = [];
+			
+			for (const student of students) {
+				// Check completion for each student
+				const isComplete = await StudentModel.checkFormCompletion(student._id.toString(), scholarFields);
+				const newStatus = isComplete ? 'completed' : 'incomplete';
+				
+				// Only update if status has changed
+				if (student.status !== newStatus) {
+					const updateData: any = { 
+						status: newStatus, 
+						updated_at: new Date() 
+					};
+					
+					// Set submitted_at if marking as completed and it doesn't already exist
+					if (newStatus === 'completed' && !student.submitted_at) {
+						updateData.submitted_at = new Date();
+					}
+					
+					bulkOperations.push({
+						updateOne: {
+							filter: { _id: student._id },
+							update: updateData
+						}
+					});
+				}
+			}
+			
+			// Perform bulk update if there are operations
+			if (bulkOperations.length > 0) {
+				await Student.bulkWrite(bulkOperations);
+				console.log(`Updated ${bulkOperations.length} students for scholar ${scholarId}`);
+			}
+		} catch (error) {
+			console.error('Error updating student statuses for scholar:', scholarId, error);
+			throw error;
+		}
 	},
 };
 

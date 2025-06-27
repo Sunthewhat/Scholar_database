@@ -1,9 +1,21 @@
 import { Context } from 'hono';
 import { ScholarFieldModel } from '@/model/scholarField';
+import { StudentModel } from '@/model/student';
 import { scholarFieldPayload } from '@/types/payload';
 import { ValidatePayload, ValidatorSchema } from '@/util/zod';
 import { ErrorResponse, FailedResponse, SuccessResponse } from '@/util/response';
 import * as mongoose from 'mongoose';
+
+// Helper function to update all student statuses for a scholar when fields change
+const updateStudentStatusesForScholar = async (scholarId: string) => {
+	try {
+		const scholarFields = await ScholarFieldModel.getByScholarId(scholarId);
+		await StudentModel.updateAllStudentStatusForScholar(scholarId, scholarFields);
+	} catch (error) {
+		console.error('Error updating student statuses after field change:', error);
+		// Don't throw error to prevent field operations from failing
+	}
+};
 
 const ScholarFieldController = {
 	// Create a new field for a scholar
@@ -20,6 +32,9 @@ const ScholarFieldController = {
 				...payload.data,
 				scholar_id: new mongoose.Types.ObjectId(payload.data.scholar_id)
 			});
+
+			// Update student statuses for this scholar (async, don't wait)
+			updateStudentStatusesForScholar(payload.data.scholar_id);
 
 			return c.json(...SuccessResponse('สร้างฟิลด์สำเร็จ!', newField));
 		} catch (e) {
@@ -77,6 +92,9 @@ const ScholarFieldController = {
 
 			if (!updatedField) return c.json(...FailedResponse('ไม่พบฟิลด์', 404));
 
+			// Update student statuses for this scholar (async, don't wait)
+			updateStudentStatusesForScholar(updatedField.scholar_id.toString());
+
 			return c.json(...SuccessResponse('อัปเดตฟิลด์สำเร็จ!', updatedField));
 		} catch (e) {
 			return c.json(...ErrorResponse(e));
@@ -93,6 +111,9 @@ const ScholarFieldController = {
 			const deletedField = await ScholarFieldModel.delete(id);
 
 			if (!deletedField) return c.json(...FailedResponse('ไม่พบฟิลด์', 404));
+
+			// Update student statuses for this scholar (async, don't wait)
+			updateStudentStatusesForScholar(deletedField.scholar_id.toString());
 
 			return c.json(...SuccessResponse('ลบฟิลด์สำเร็จ!', deletedField));
 		} catch (e) {
@@ -139,6 +160,9 @@ const ScholarFieldController = {
 
 			if (!updatedField) return c.json(...FailedResponse('ไม่พบฟิลด์', 404));
 
+			// Update student statuses for this scholar (async, don't wait)
+			updateStudentStatusesForScholar(updatedField.scholar_id.toString());
+
 			return c.json(...SuccessResponse('เพิ่มคำถามสำเร็จ!', updatedField));
 		} catch (e) {
 			return c.json(...ErrorResponse(e));
@@ -169,6 +193,9 @@ const ScholarFieldController = {
 
 			if (!updatedField) return c.json(...FailedResponse('ไม่พบฟิลด์หรือคำถาม', 404));
 
+			// Update student statuses for this scholar (async, don't wait)
+			updateStudentStatusesForScholar(updatedField.scholar_id.toString());
+
 			return c.json(...SuccessResponse('อัปเดตคำถามสำเร็จ!', updatedField));
 		} catch (e) {
 			return c.json(...ErrorResponse(e));
@@ -187,6 +214,9 @@ const ScholarFieldController = {
 			const updatedField = await ScholarFieldModel.removeQuestion(fieldId, questionId);
 
 			if (!updatedField) return c.json(...FailedResponse('ไม่พบฟิลด์', 404));
+
+			// Update student statuses for this scholar (async, don't wait)
+			updateStudentStatusesForScholar(updatedField.scholar_id.toString());
 
 			return c.json(...SuccessResponse('ลบคำถามสำเร็จ!', updatedField));
 		} catch (e) {

@@ -106,12 +106,22 @@ namespace studentPayload {
 
 	export type Update = {
 		form_data?: Record<string, any>;
-		status?: 'created' | 'draft' | 'submitted' | 'approved' | 'rejected';
+		status?: 'incomplete' | 'completed';
 		fullname?: string;
 	};
 
 	export type SubmitForm = {
 		form_data: Record<string, any>;
+	};
+
+	export type GenerateTempPermission = {
+		student_id: string;
+		expires_in?: number;
+	};
+
+	export type VerifyTempPermission = {
+		token: string;
+		student_id: string;
 	};
 }
 

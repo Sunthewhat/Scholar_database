@@ -1,11 +1,13 @@
 import { Context } from 'hono';
 import { StudentModel } from '@/model/student';
+import { ScholarFieldModel } from '@/model/scholarField';
 import { studentPayload } from '@/types/payload';
 import { ValidatePayload, ValidatorSchema } from '@/util/zod';
 import { ErrorResponse, FailedResponse, SuccessResponse } from '@/util/response';
 import { StorageUtil } from '@/util/storage';
 import { parseFormDataPayload } from '@/util/formData';
 import * as mongoose from 'mongoose';
+import * as jwt from 'hono/jwt';
 
 // Helper function to validate ObjectId
 const isValidObjectId = (id: string): boolean => {
@@ -44,7 +46,7 @@ const StudentController = {
 	create: async (c: Context) => {
 		try {
 			const { formData, jsonData } = await parseFormDataPayload(c);
-			
+
 			const payload = await ValidatePayload<studentPayload.Create>(
 				{ req: { json: () => jsonData } } as Context,
 				ValidatorSchema.StudentPayload.create
@@ -53,7 +55,7 @@ const StudentController = {
 			if (!payload.success) return c.json(...FailedResponse(payload.error));
 
 			let processedFormData = payload.data.form_data || {};
-			
+
 			if (formData.entries().next().value) {
 				try {
 					const fileData = await StorageUtil.processFormDataFiles(formData);
@@ -122,14 +124,9 @@ const StudentController = {
 
 	getByStatus: async (c: Context) => {
 		try {
-			const status = c.req.param('status') as
-				| 'created'
-				| 'draft'
-				| 'submitted'
-				| 'approved'
-				| 'rejected';
+			const status = c.req.param('status') as 'incomplete' | 'completed';
 
-			if (!['created', 'draft', 'submitted', 'approved', 'rejected'].includes(status)) {
+			if (!['incomplete', 'completed'].includes(status)) {
 				return c.json(...FailedResponse('สถานะไม่ถูกต้อง'));
 			}
 
@@ -163,7 +160,7 @@ const StudentController = {
 			}
 
 			let updateData = { ...payload.data };
-			
+
 			if (payload.data.form_data) {
 				const existingStudent = await StudentModel.getById(id);
 				if (!existingStudent) return c.json(...FailedResponse('ไม่พบนักเรียน'));
@@ -179,8 +176,11 @@ const StudentController = {
 						const fileData = await StorageUtil.processFormDataFiles(formData);
 						console.log('File processing result:', fileData);
 						processedFormData = { ...processedFormData, ...fileData };
-						
-						await StorageUtil.cleanupOldFiles(existingStudent.form_data, processedFormData);
+
+						await StorageUtil.cleanupOldFiles(
+							existingStudent.form_data,
+							processedFormData
+						);
 					} catch (storageError) {
 						console.error('Storage error:', storageError);
 						return c.json(...ErrorResponse(storageError));
@@ -192,6 +192,45 @@ const StudentController = {
 				const fullname = extractFullname(processedFormData);
 				if (fullname) {
 					updateData.fullname = fullname;
+				}
+			}
+
+			// Check form completion and set status automatically
+			if (payload.data.form_data) {
+				try {
+					// Get scholar fields to check completion
+					const existingStudent = await StudentModel.getById(id);
+					if (existingStudent) {
+						const scholarId =
+							typeof existingStudent.scholar_id === 'object'
+								? existingStudent.scholar_id._id
+								: existingStudent.scholar_id;
+
+						const scholarFields = await ScholarFieldModel.getByScholarId(
+							scholarId.toString()
+						);
+
+						// Update the student first, then check completion
+						await StudentModel.update(id, updateData);
+
+						const isComplete = await StudentModel.checkFormCompletion(
+							id,
+							scholarFields
+						);
+						const finalStatus = isComplete ? 'completed' : 'incomplete';
+
+						// Update status based on completion
+						const finalUpdatedStudent = await StudentModel.setStatus(id, finalStatus);
+
+						if (!finalUpdatedStudent) return c.json(...FailedResponse('ไม่พบนักเรียน'));
+
+						return c.json(
+							...SuccessResponse('อัปเดตข้อมูลนักเรียนสำเร็จ!', finalUpdatedStudent)
+						);
+					}
+				} catch (completionError) {
+					console.error('Error checking completion:', completionError);
+					// If completion check fails, proceed with normal update
 				}
 			}
 
@@ -236,18 +275,13 @@ const StudentController = {
 	setStatus: async (c: Context) => {
 		try {
 			const id = c.req.param('id');
-			const status = c.req.param('status') as
-				| 'created'
-				| 'draft'
-				| 'submitted'
-				| 'approved'
-				| 'rejected';
+			const status = c.req.param('status') as 'incomplete' | 'completed';
 
 			if (!id) return c.json(...FailedResponse('ไม่พบ ID นักเรียน'));
 			if (!isValidObjectId(id))
 				return c.json(...FailedResponse('รูปแบบ ID นักเรียนไม่ถูกต้อง'));
 
-			if (!['created', 'draft', 'submitted', 'approved', 'rejected'].includes(status)) {
+			if (!['incomplete', 'completed'].includes(status)) {
 				return c.json(...FailedResponse('สถานะไม่ถูกต้อง'));
 			}
 
@@ -287,7 +321,7 @@ const StudentController = {
 				try {
 					const fileData = await StorageUtil.processFormDataFiles(formData);
 					processedFormData = { ...processedFormData, ...fileData };
-					
+
 					await StorageUtil.cleanupOldFiles(existingStudent.form_data, processedFormData);
 				} catch (storageError) {
 					return c.json(...ErrorResponse(storageError));
@@ -296,11 +330,34 @@ const StudentController = {
 
 			const fullname = extractFullname(processedFormData);
 
-			const submittedStudent = await StudentModel.submitForm(id, processedFormData, fullname);
+			// First update the form data
+			const submittedStudent = await StudentModel.update(id, {
+				form_data: processedFormData,
+				fullname: fullname,
+			});
 
 			if (!submittedStudent) return c.json(...FailedResponse('ไม่พบนักเรียน'));
 
-			return c.json(...SuccessResponse('ส่งฟอร์มสำเร็จ!', submittedStudent));
+			// Then check completion and set final status
+			try {
+				const scholarId =
+					typeof submittedStudent.scholar_id === 'object'
+						? submittedStudent.scholar_id._id
+						: submittedStudent.scholar_id;
+
+				const scholarFields = await ScholarFieldModel.getByScholarId(scholarId.toString());
+				const isComplete = await StudentModel.checkFormCompletion(id, scholarFields);
+				const finalStatus = isComplete ? 'completed' : 'incomplete';
+
+				const finalStudent = await StudentModel.setStatus(id, finalStatus);
+
+				return c.json(...SuccessResponse('ส่งฟอร์มสำเร็จ!', finalStudent));
+			} catch (completionError) {
+				console.error('Error checking completion in submitForm:', completionError);
+				// If completion check fails, set as completed anyway since it's a submit action
+				const finalStudent = await StudentModel.setStatus(id, 'completed');
+				return c.json(...SuccessResponse('ส่งฟอร์มสำเร็จ!', finalStudent));
+			}
 		} catch (e) {
 			return c.json(...ErrorResponse(e));
 		}
@@ -317,6 +374,96 @@ const StudentController = {
 			const count = await StudentModel.countByScholar(scholarId);
 
 			return c.json(...SuccessResponse('ดึงจำนวนนักเรียนสำเร็จ', { count }));
+		} catch (e) {
+			return c.json(...ErrorResponse(e));
+		}
+	},
+
+	generateTempPermission: async (c: Context) => {
+		try {
+			const payload = await ValidatePayload<studentPayload.GenerateTempPermission>(
+				c,
+				ValidatorSchema.StudentPayload.generateTempPermission
+			);
+
+			if (!payload.success) return c.json(...FailedResponse(payload.error));
+
+			const student = await StudentModel.getById(payload.data.student_id);
+			if (!student) return c.json(...FailedResponse('ไม่พบนักเรียน'));
+
+			const jwt_secret = Bun.env.JWT_SECRET;
+			if (!jwt_secret) throw new Error('JWT_SECRET is not defined');
+
+			const expirationTime =
+				Math.floor(Date.now() / 1000) + (payload.data.expires_in || 3600);
+
+			const token = await jwt.sign(
+				{
+					student_id: payload.data.student_id,
+					type: 'temp_permission',
+					exp: expirationTime,
+				},
+				jwt_secret
+			);
+
+			return c.json(
+				...SuccessResponse('สร้าง Token สำหรับแก้ไขฟอร์มสำเร็จ', {
+					token,
+					expires_at: new Date(expirationTime * 1000).toISOString(),
+					student_id: payload.data.student_id,
+				})
+			);
+		} catch (e) {
+			return c.json(...ErrorResponse(e));
+		}
+	},
+
+	verifyTempPermission: async (c: Context) => {
+		try {
+			const payload = await ValidatePayload<studentPayload.VerifyTempPermission>(
+				c,
+				ValidatorSchema.StudentPayload.verifyTempPermission
+			);
+
+			if (!payload.success) return c.json(...FailedResponse(payload.error));
+
+			const jwt_secret = Bun.env.JWT_SECRET;
+			if (!jwt_secret) throw new Error('JWT_SECRET is not defined');
+
+			try {
+				const decoded = (await jwt.verify(payload.data.token, jwt_secret)) as {
+					student_id: string;
+					type: string;
+					exp: number;
+				};
+
+				if (decoded.type !== 'temp_permission') {
+					return c.json(...FailedResponse('Token ไม่ถูกต้อง'));
+				}
+
+				if (decoded.student_id !== payload.data.student_id) {
+					return c.json(...FailedResponse('Token ไม่ตรงกับ Student ID'));
+				}
+
+				const currentTime = Math.floor(Date.now() / 1000);
+				if (decoded.exp < currentTime) {
+					return c.json(...FailedResponse('Token หมดอายุแล้ว'));
+				}
+
+				const student = await StudentModel.getById(payload.data.student_id);
+				if (!student) return c.json(...FailedResponse('ไม่พบนักเรียน'));
+
+				return c.json(
+					...SuccessResponse('Token ถูกต้อง', {
+						valid: true,
+						student_id: decoded.student_id,
+						expires_at: new Date(decoded.exp * 1000).toISOString(),
+						student: student,
+					})
+				);
+			} catch (verifyError) {
+				return c.json(...FailedResponse('Token ไม่ถูกต้องหรือหมดอายุ'));
+			}
 		} catch (e) {
 			return c.json(...ErrorResponse(e));
 		}

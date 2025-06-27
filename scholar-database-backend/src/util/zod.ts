@@ -210,13 +210,27 @@ export const ValidatorSchema: any = {
 		update: z.object({
 			form_data: z.record(z.any()).optional(),
 			status: z
-				.enum(['draft', 'submitted', 'approved', 'rejected'], {
+				.enum(['incomplete', 'completed'], {
 					errorMap: () => ({ message: 'Invalid status' }),
 				})
 				.optional(),
 		}),
 		submitForm: z.object({
 			form_data: z.record(z.any()),
+		}),
+		generateTempPermission: z.object({
+			student_id: z
+				.string({ required_error: 'Student ID is required' })
+				.min(1)
+				.regex(/^[0-9a-fA-F]{24}$/, { message: 'Invalid Student ID format' }),
+			expires_in: z.number().positive().optional().default(3600),
+		}),
+		verifyTempPermission: z.object({
+			token: z.string({ required_error: 'Token is required' }).min(1),
+			student_id: z
+				.string({ required_error: 'Student ID is required' })
+				.min(1)
+				.regex(/^[0-9a-fA-F]{24}$/, { message: 'Invalid Student ID format' }),
 		}),
 	},
 };

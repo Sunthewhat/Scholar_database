@@ -19,7 +19,7 @@ const EditFormPage: FC = () => {
 	const {
 		data: initialSections,
 		isLoading: isInitialLoading,
-		isError: isInitialError
+		isError: isInitialError,
 	} = useApiData<ScholarField[]>(`/scholar-field/scholar/${scholarId}`);
 
 	const [sections, setSections] = useState<ScholarField[]>([]);
@@ -229,7 +229,8 @@ const EditFormPage: FC = () => {
 			(q) => q.question_id === questionId
 		);
 		if (questionIndex !== -1) {
-			newSections[sectionIndex].questions[questionIndex].allow_multiple = config.allow_multiple;
+			newSections[sectionIndex].questions[questionIndex].allow_multiple =
+				config.allow_multiple;
 			newSections[sectionIndex].questions[questionIndex].file_types = config.file_types;
 			setSections(newSections);
 		}
@@ -341,7 +342,8 @@ const EditFormPage: FC = () => {
 							? q.allow_other || false
 							: undefined,
 						table_config: q.table_config,
-						allow_multiple: q.question_type === 'file_upload' ? q.allow_multiple : undefined,
+						allow_multiple:
+							q.question_type === 'file_upload' ? q.allow_multiple : undefined,
 						file_types: q.question_type === 'file_upload' ? q.file_types : undefined,
 						order: q.order,
 						placeholder: q.placeholder,
@@ -386,7 +388,8 @@ const EditFormPage: FC = () => {
 			await Promise.all(updatePromises);
 
 			// Navigate back to home with success
-			router.push('/?updated=true');
+			// router.push('/?updated=true');
+			router.back();
 		} catch (error: any) {
 			console.error('Save error:', error);
 			const errorMessage =

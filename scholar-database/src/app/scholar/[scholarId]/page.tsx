@@ -68,7 +68,7 @@ const ScholarDetailPage: FC = () => {
 
 			if (response.status === 200 && response.data.success) {
 				// Navigate to the form page for the new student
-				router.push(`/student/${response.data.data._id}/form`);
+				router.push(`/student/${response.data.data._id}/form?create=true`);
 			} else {
 				setError(response.data.msg || 'เกิดข้อผิดพลาดในการสร้างนักเรียน');
 			}
@@ -121,16 +121,10 @@ const ScholarDetailPage: FC = () => {
 
 	const getStatusDisplay = (status: string) => {
 		switch (status) {
-			case 'created':
-				return { text: 'สร้าง', color: '' };
-			case 'draft':
-				return { text: 'ร่าง', color: '' };
-			case 'submitted':
-				return { text: 'ส่งแล้ว', color: '' };
-			case 'approved':
-				return { text: 'อนุมัติ', color: '' };
-			case 'rejected':
-				return { text: 'ปฏิเสธ', color: '' };
+			case 'completed':
+				return { text: 'สมบูรณ์', color: '' };
+			case 'incomplete':
+				return { text: 'ไม่สมบูรณ์', color: '' };
 			default:
 				return { text: status, color: '' };
 		}

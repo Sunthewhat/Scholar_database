@@ -4,6 +4,9 @@ import { authMiddleware } from '@/middleware/auth';
 
 const StudentRouter = new Hono();
 
+// POST /student/temp-permission/verify - Verify temporary permission token
+StudentRouter.post('/temp-permission/verify', StudentController.verifyTempPermission);
+
 // Apply authentication middleware to all student routes
 StudentRouter.use('*', authMiddleware);
 
@@ -36,5 +39,8 @@ StudentRouter.patch('/:id/status/:status', StudentController.setStatus);
 
 // POST /student/:id/submit - Submit student form
 StudentRouter.post('/:id/submit', StudentController.submitForm);
+
+// POST /student/temp-permission/generate - Generate temporary permission token for student
+StudentRouter.post('/temp-permission/generate', StudentController.generateTempPermission);
 
 export { StudentRouter };

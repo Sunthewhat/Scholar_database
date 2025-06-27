@@ -1,6 +1,6 @@
 import { Scholar } from './scholar';
 
-export type StudentStatus = 'completed' | 'incompleted';
+export type StudentStatus = 'completed' | 'incomplete';
 
 export type Student = {
 	_id?: string;

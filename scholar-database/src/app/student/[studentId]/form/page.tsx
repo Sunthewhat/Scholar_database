@@ -4,16 +4,17 @@ import { HomeLayout } from '@/components/layouts/homeLayout';
 import { Modal } from '@/components/modal';
 import { Student } from '@/types/student';
 import { ScholarField, Question } from '@/types/scholarField';
-import { StudentResponse, ScholarFieldResponse } from '@/types/response';
+import { ScholarFieldResponse } from '@/types/response';
 import { Axios } from '@/util/axios';
 import { useApiData } from '@/utils/api';
 import { submitFormWithFiles, extractFilesFromFormData } from '@/utils/formData';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { FC, useState, useEffect } from 'react';
 
 const StudentFormPage: FC = () => {
 	const router = useRouter();
 	const params = useParams();
+	const isCreating = useSearchParams().get('create');
 	const studentId = params.studentId as string;
 
 	// Use useApiData for student data
@@ -30,6 +31,12 @@ const StudentFormPage: FC = () => {
 	const [isSaving, setIsSaving] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [showSuccessModal, setShowSuccessModal] = useState(false);
+	const [isEditMode, setIsEditMode] = useState(false);
+
+	// Check is it first created student
+	useEffect(() => {
+		if (isCreating && isCreating === 'true') setIsEditMode(true);
+	}, [isCreating]);
 
 	// Initialize form data when student data is loaded
 	useEffect(() => {
@@ -138,7 +145,8 @@ const StudentFormPage: FC = () => {
 
 			// Clean form data to remove undefined values and extract files
 			const cleanedFormData = cleanFormData(formData);
-			const { cleanFormData: dataWithoutFiles, files } = extractFilesFromFormData(cleanedFormData);
+			const { cleanFormData: dataWithoutFiles, files } =
+				extractFilesFromFormData(cleanedFormData);
 
 			const response = await submitFormWithFiles({
 				endpoint: `/student/${studentId}`,
@@ -150,6 +158,7 @@ const StudentFormPage: FC = () => {
 			if (response.status === 200 && response.data.success) {
 				setStudent(response.data.data);
 				setError(null);
+				setIsEditMode(false);
 				setShowSuccessModal(true);
 			} else {
 				setError(response.data.msg || 'เกิดข้อผิดพลาดในการบันทึก');
@@ -178,7 +187,11 @@ const StudentFormPage: FC = () => {
 							handleFieldChange(field._id!, question.question_id, e.target.value)
 						}
 						placeholder={question.placeholder || 'กรอกข้อความสั้น...'}
-						className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+						className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+							!isEditMode ? 'bg-gray-50 cursor-not-allowed' : ''
+						}`}
+						disabled={!isEditMode}
+						readOnly={!isEditMode}
 					/>
 				);
 
@@ -191,7 +204,11 @@ const StudentFormPage: FC = () => {
 						}
 						placeholder={question.placeholder || 'กรอกข้อความยาว...'}
 						rows={4}
-						className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none'
+						className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none ${
+							!isEditMode ? 'bg-gray-50 cursor-not-allowed' : ''
+						}`}
+						disabled={!isEditMode}
+						readOnly={!isEditMode}
 					/>
 				);
 
@@ -212,7 +229,10 @@ const StudentFormPage: FC = () => {
 											e.target.value
 										)
 									}
-									className='h-4 w-4 text-blue-600 mr-3'
+									className={`h-4 w-4 text-blue-600 mr-3 ${
+										!isEditMode ? 'cursor-not-allowed' : ''
+									}`}
+									disabled={!isEditMode}
 								/>
 								<span className='text-gray-700'>{option}</span>
 							</div>
@@ -232,7 +252,10 @@ const StudentFormPage: FC = () => {
 											e.target.value
 										)
 									}
-									className='h-4 w-4 text-blue-600 mr-3'
+									className={`h-4 w-4 text-blue-600 mr-3 ${
+										!isEditMode ? 'cursor-not-allowed' : ''
+									}`}
+									disabled={!isEditMode}
 								/>
 								<span className='text-gray-700'>อื่นๆ:</span>
 								<input
@@ -246,8 +269,13 @@ const StudentFormPage: FC = () => {
 										)
 									}
 									placeholder='ระบุ...'
-									className='flex-1 px-2 py-1 border border-gray-300 rounded text-sm'
-									disabled={questionValue !== 'other'}
+									className={`flex-1 px-2 py-1 border border-gray-300 rounded text-sm ${
+										!isEditMode || questionValue !== 'other'
+											? 'bg-gray-50 cursor-not-allowed'
+											: ''
+									}`}
+									disabled={!isEditMode || questionValue !== 'other'}
+									readOnly={!isEditMode}
 								/>
 							</div>
 						)}
@@ -279,7 +307,10 @@ const StudentFormPage: FC = () => {
 												newValues
 											);
 										}}
-										className='h-4 w-4 text-blue-600 rounded mr-3'
+										className={`h-4 w-4 text-blue-600 rounded mr-3 ${
+											!isEditMode ? 'cursor-not-allowed' : ''
+										}`}
+										disabled={!isEditMode}
 									/>
 									<span className='text-gray-700'>{option}</span>
 								</div>
@@ -308,7 +339,10 @@ const StudentFormPage: FC = () => {
 											newValues
 										);
 									}}
-									className='h-4 w-4 text-blue-600 rounded mr-3'
+									className={`h-4 w-4 text-blue-600 rounded mr-3 ${
+										!isEditMode ? 'cursor-not-allowed' : ''
+									}`}
+									disabled={!isEditMode}
 								/>
 								<span className='text-gray-700'>อื่นๆ:</span>
 								<input
@@ -322,11 +356,19 @@ const StudentFormPage: FC = () => {
 										)
 									}
 									placeholder='ระบุ...'
-									className='flex-1 px-2 py-1 border border-gray-300 rounded text-sm'
+									className={`flex-1 px-2 py-1 border border-gray-300 rounded text-sm ${
+										!isEditMode ||
+										!Array.isArray(questionValue) ||
+										!questionValue.includes('other')
+											? 'bg-gray-50 cursor-not-allowed'
+											: ''
+									}`}
 									disabled={
+										!isEditMode ||
 										!Array.isArray(questionValue) ||
 										!questionValue.includes('other')
 									}
+									readOnly={!isEditMode}
 								/>
 							</div>
 						)}
@@ -341,7 +383,10 @@ const StudentFormPage: FC = () => {
 							onChange={(e) =>
 								handleFieldChange(field._id!, question.question_id, e.target.value)
 							}
-							className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+							className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+								!isEditMode ? 'bg-gray-50 cursor-not-allowed' : ''
+							}`}
+							disabled={!isEditMode}
 						>
 							<option value=''>เลือกตัวเลือก...</option>
 							{(question.options || []).map((option, index) => (
@@ -365,7 +410,13 @@ const StudentFormPage: FC = () => {
 										)
 									}
 									placeholder='ระบุ...'
-									className='flex-1 px-2 py-1 border border-gray-300 rounded'
+									className={`flex-1 px-2 py-1 border border-gray-300 rounded ${
+										!isEditMode || questionValue !== 'other'
+											? 'bg-gray-50 cursor-not-allowed'
+											: ''
+									}`}
+									disabled={!isEditMode || questionValue !== 'other'}
+									readOnly={!isEditMode}
 								/>
 							</div>
 						)}
@@ -380,7 +431,11 @@ const StudentFormPage: FC = () => {
 						onChange={(e) =>
 							handleFieldChange(field._id!, question.question_id, e.target.value)
 						}
-						className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+						className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+							!isEditMode ? 'bg-gray-50 cursor-not-allowed' : ''
+						}`}
+						disabled={!isEditMode}
+						readOnly={!isEditMode}
 					/>
 				);
 
@@ -392,7 +447,11 @@ const StudentFormPage: FC = () => {
 						onChange={(e) =>
 							handleFieldChange(field._id!, question.question_id, e.target.value)
 						}
-						className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+						className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+							!isEditMode ? 'bg-gray-50 cursor-not-allowed' : ''
+						}`}
+						disabled={!isEditMode}
+						readOnly={!isEditMode}
 					/>
 				);
 
@@ -472,7 +531,13 @@ const StudentFormPage: FC = () => {
 																	newTableData
 																);
 															}}
-															className='w-full px-2 py-1 border-none bg-transparent focus:outline-none focus:bg-white'
+															className={`w-full px-2 py-1 border-none bg-transparent focus:outline-none focus:bg-white ${
+																!isEditMode
+																	? 'cursor-not-allowed bg-gray-50'
+																	: ''
+															}`}
+															disabled={!isEditMode}
+															readOnly={!isEditMode}
 														/>
 													</td>
 												);
@@ -486,8 +551,12 @@ const StudentFormPage: FC = () => {
 				);
 
 			case 'file_upload':
-				const currentFiles = Array.isArray(questionValue) ? questionValue : questionValue ? [questionValue] : [];
-				
+				const currentFiles = Array.isArray(questionValue)
+					? questionValue
+					: questionValue
+					? [questionValue]
+					: [];
+
 				return (
 					<div className='space-y-2'>
 						<input
@@ -499,9 +568,17 @@ const StudentFormPage: FC = () => {
 										// Add new files to existing ones
 										const newFiles = Array.from(files);
 										const updatedFiles = [...currentFiles, ...newFiles];
-										handleFieldChange(field._id!, question.question_id, updatedFiles);
+										handleFieldChange(
+											field._id!,
+											question.question_id,
+											updatedFiles
+										);
 									} else {
-										handleFieldChange(field._id!, question.question_id, files[0]);
+										handleFieldChange(
+											field._id!,
+											question.question_id,
+											files[0]
+										);
 									}
 									// Clear the input so same file can be selected again
 									e.target.value = '';
@@ -509,31 +586,53 @@ const StudentFormPage: FC = () => {
 							}}
 							accept={question.file_types ? question.file_types.join(',') : undefined}
 							multiple={false} // Always single selection for better UX
-							className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100'
+							className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 ${
+								!isEditMode ? 'cursor-not-allowed bg-gray-50' : ''
+							}`}
+							disabled={!isEditMode}
 						/>
 						{currentFiles.length > 0 && (
 							<div className='text-sm text-gray-600'>
 								{question.allow_multiple ? (
 									<div>
-										<div className='font-medium mb-2'>{currentFiles.length} ไฟล์ที่เลือก:</div>
+										<div className='font-medium mb-2'>
+											{currentFiles.length} ไฟล์ที่เลือก:
+										</div>
 										<div className='space-y-1'>
 											{currentFiles.map((file, index) => (
-												<div key={index} className='flex items-center justify-between bg-gray-50 p-2 rounded'>
+												<div
+													key={index}
+													className='flex items-center justify-between bg-gray-50 p-2 rounded'
+												>
 													<span className='flex-1'>
-														{typeof file === 'string' 
+														{typeof file === 'string'
 															? file.split('/').pop()
-															: file instanceof File 
-															? `${file.name} (${Math.round(file.size / 1024)} KB)`
-															: `ไฟล์ ${index + 1}`
-														}
+															: file instanceof File
+															? `${file.name} (${Math.round(
+																	file.size / 1024
+															  )} KB)`
+															: `ไฟล์ ${index + 1}`}
 													</span>
 													<button
 														type='button'
 														onClick={() => {
-															const newFiles = currentFiles.filter((_, i) => i !== index);
-															handleFieldChange(field._id!, question.question_id, newFiles.length > 0 ? newFiles : null);
+															const newFiles = currentFiles.filter(
+																(_, i) => i !== index
+															);
+															handleFieldChange(
+																field._id!,
+																question.question_id,
+																newFiles.length > 0
+																	? newFiles
+																	: null
+															);
 														}}
-														className='ml-2 text-red-500 hover:text-red-700 text-xs px-2 py-1 rounded'
+														className={`ml-2 text-red-500 hover:text-red-700 text-xs px-2 py-1 rounded ${
+															!isEditMode
+																? 'cursor-not-allowed opacity-50'
+																: ''
+														}`}
+														disabled={!isEditMode}
 													>
 														ลบ
 													</button>
@@ -544,19 +643,27 @@ const StudentFormPage: FC = () => {
 								) : (
 									<div className='flex items-center justify-between bg-gray-50 p-2 rounded'>
 										<span className='flex-1'>
-											{typeof questionValue === 'string' 
+											{typeof questionValue === 'string'
 												? `ไฟล์ปัจจุบัน: ${questionValue.split('/').pop()}`
-												: questionValue instanceof File 
-												? `ไฟล์ที่เลือก: ${questionValue.name} (${Math.round(questionValue.size / 1024)} KB)`
-												: 'ไฟล์ที่เลือก'
-											}
+												: questionValue instanceof File
+												? `ไฟล์ที่เลือก: ${
+														questionValue.name
+												  } (${Math.round(questionValue.size / 1024)} KB)`
+												: 'ไฟล์ที่เลือก'}
 										</span>
 										<button
 											type='button'
 											onClick={() => {
-												handleFieldChange(field._id!, question.question_id, null);
+												handleFieldChange(
+													field._id!,
+													question.question_id,
+													null
+												);
 											}}
-											className='ml-2 text-red-500 hover:text-red-700 text-xs px-2 py-1 rounded'
+											className={`ml-2 text-red-500 hover:text-red-700 text-xs px-2 py-1 rounded ${
+												!isEditMode ? 'cursor-not-allowed opacity-50' : ''
+											}`}
+											disabled={!isEditMode}
 										>
 											ลบ
 										</button>
@@ -601,7 +708,9 @@ const StudentFormPage: FC = () => {
 			<HomeLayout>
 				<div className='w-3/4 h-full flex flex-col mx-auto pt-16 mt-20'>
 					<div className='flex items-center justify-between mb-8'>
-						<h1 className='text-2xl font-semibold'>{'ฟอร์มกรอกข้อมูล'}</h1>
+						<h1 className='text-2xl font-semibold'>
+							{isEditMode ? 'แก้ไขฟอร์มข้อมูล' : 'ดูฟอร์มข้อมูล'}
+						</h1>
 					</div>
 
 					{error && (
@@ -644,23 +753,51 @@ const StudentFormPage: FC = () => {
 					</div>
 
 					<div className='flex justify-end gap-4 w-full'>
-						<button
-							onClick={handleBackToScholarDetail}
-							className='bg-red w-32 text-white text-center px-4 py-2 rounded-xl'
-						>
-							ยกเลิก
-						</button>
-						<button
-							onClick={handleSaveDraft}
-							disabled={isSaving}
-							className={`px-4 py-2 w-32 rounded-xl transition-colors bg-green ${
-								isSaving
-									? 'bg-gray-400 cursor-not-allowed text-white'
-									: 'text-white'
-							}`}
-						>
-							{isSaving ? 'กำลังบันทึก...' : 'บันทึก'}
-						</button>
+						{!isEditMode ? (
+							<>
+								<button
+									onClick={handleBackToScholarDetail}
+									className='bg-softblack w-32 text-white text-center px-4 py-2 rounded-xl transition-colors'
+								>
+									กลับ
+								</button>
+								<button
+									onClick={() => setIsEditMode(true)}
+									className='bg-violet-2 w-32 text-white text-center px-4 py-2 rounded-xl transition-colors'
+								>
+									แก้ไข
+								</button>
+							</>
+						) : (
+							<>
+								<button
+									onClick={() => {
+										setIsEditMode(false);
+										// Reset form data to original student data
+										if (student) {
+											setFormData({
+												...student.form_data,
+												initialized: true,
+											});
+										}
+									}}
+									className='bg-red w-32 text-white text-center px-4 py-2 rounded-xl hover:bg-red-600 transition-colors'
+								>
+									ยกเลิก
+								</button>
+								<button
+									onClick={handleSaveDraft}
+									disabled={isSaving}
+									className={`px-4 py-2 w-32 rounded-xl transition-colors bg-green ${
+										isSaving
+											? 'bg-gray-400 cursor-not-allowed text-white'
+											: 'text-white hover:bg-green-600'
+									}`}
+								>
+									{isSaving ? 'กำลังบันทึก...' : 'บันทึก'}
+								</button>
+							</>
+						)}
 					</div>
 				</div>
 			</HomeLayout>
