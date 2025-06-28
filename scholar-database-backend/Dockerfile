@@ -12,9 +12,9 @@ FROM builder AS runner
 
 WORKDIR /mnt
 
-COPY --from=builder ./out/index.js .
+COPY --from=builder mnt/out/index.js .
 
-COPY --from=builder .env .
+COPY --from=builder mnt/.env .
 
 EXPOSE 8000
 
