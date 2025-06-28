@@ -7,6 +7,11 @@ import { AuthMiddlewareSetValue } from './types/middleware';
 
 const mongo = await InitMongo();
 
+fetch(Bun.env.STORAGE_URL).then((r) => {
+	if (r.status !== 200) throw new Error('Cannot connect to STORAGE');
+	console.log('Storage unit connected');
+});
+
 const ORIGIN = Bun.env.ORIGIN || '';
 
 if (!ORIGIN) console.error('No Environment Origin found');
