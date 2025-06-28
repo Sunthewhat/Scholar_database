@@ -5,6 +5,8 @@ import { MainRouter } from './router/main';
 
 const ORIGIN = Bun.env.ORIGIN || '';
 
+const PUBLIC_ORIGIN = Bun.env.PUBLIC_ORIGIN || '';
+
 if (!ORIGIN) console.error('No Environment Origin found');
 
 const app = new Hono().basePath('api');
@@ -17,7 +19,7 @@ if (DEVELOPMENT !== 'PROD') {
 
 app.use(
 	cors({
-		origin: [ORIGIN],
+		origin: [ORIGIN, PUBLIC_ORIGIN],
 	})
 );
 
