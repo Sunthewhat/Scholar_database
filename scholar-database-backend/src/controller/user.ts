@@ -190,11 +190,11 @@ const UserController = {
 	changeUserRole: async (c: Context) => {
 		try {
 			const id = c.req.param('id');
-			
+
 			if (!id) return c.json(...FailedResponse('ไม่พบ ID ผู้ใช้งาน'));
 
 			const currentUser = c.get('user');
-			
+
 			if (!currentUser) {
 				return c.json(...FailedResponse('ไม่พบข้อมูลผู้ใช้งาน'));
 			}

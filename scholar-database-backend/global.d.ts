@@ -6,5 +6,6 @@ declare module 'bun' {
 		JWT_SECRET: string;
 		STORAGE_URL: string;
 		PUBLIC_STORAGE_URL: string;
+		ADMIN_PASSWORD: string;
 	}
 }

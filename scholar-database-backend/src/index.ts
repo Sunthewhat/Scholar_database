@@ -5,7 +5,9 @@ import { InitMongo } from './db/mongoose';
 import { MainRouter } from './router/main';
 import { AuthMiddlewareSetValue } from './types/middleware';
 
-const mongo = await InitMongo();
+await InitMongo();
+
+
 
 fetch(Bun.env.STORAGE_URL).then((r) => {
 	if (r.status !== 200) throw new Error('Cannot connect to STORAGE');
@@ -33,8 +35,6 @@ app.use(
 		origin: [ORIGIN],
 	})
 );
-
-export { mongo };
 
 app.route('v1', MainRouter);
 
