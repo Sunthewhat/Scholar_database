@@ -192,7 +192,7 @@ const StudentModel = {
 			// Perform bulk update if there are operations
 			if (bulkOperations.length > 0) {
 				await Student.bulkWrite(bulkOperations);
-				console.log(`Updated ${bulkOperations.length} students for scholar ${scholarId}`);
+				// console.log(`Updated ${bulkOperations.length} students for scholar ${scholarId}`);
 			}
 		} catch (error) {
 			console.error('Error updating student statuses for scholar:', scholarId, error);

@@ -9,6 +9,25 @@ import { parseFormDataPayload } from '@/util/formData';
 import * as mongoose from 'mongoose';
 import * as jwt from 'hono/jwt';
 
+// Deep merge utility function
+const deepMerge = (target: Record<string, any>, source: Record<string, any>): Record<string, any> => {
+	const result = { ...target };
+	
+	for (const key in source) {
+		if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
+			if (target[key] && typeof target[key] === 'object' && !Array.isArray(target[key])) {
+				result[key] = deepMerge(target[key], source[key]);
+			} else {
+				result[key] = source[key];
+			}
+		} else {
+			result[key] = source[key];
+		}
+	}
+	
+	return result;
+};
+
 // Helper function to validate ObjectId
 const isValidObjectId = (id: string): boolean => {
 	return mongoose.Types.ObjectId.isValid(id);
@@ -75,6 +94,8 @@ const StudentController = {
 
 			return c.json(...SuccessResponse('สร้างนักเรียนสำเร็จ!', newStudent));
 		} catch (e) {
+			console.error(e);
+
 			return c.json(...ErrorResponse(e));
 		}
 	},
@@ -84,6 +105,8 @@ const StudentController = {
 			const students = await StudentModel.getAll();
 			return c.json(...SuccessResponse('ดึงข้อมูลนักเรียนสำเร็จ', students));
 		} catch (e) {
+			console.error(e);
+
 			return c.json(...ErrorResponse(e));
 		}
 	},
@@ -102,6 +125,8 @@ const StudentController = {
 
 			return c.json(...SuccessResponse('ดึงข้อมูลนักเรียนสำเร็จ', student));
 		} catch (e) {
+			console.error(e);
+
 			return c.json(...ErrorResponse(e));
 		}
 	},
@@ -118,6 +143,8 @@ const StudentController = {
 
 			return c.json(...SuccessResponse('ดึงข้อมูลนักเรียนสำเร็จ', students));
 		} catch (e) {
+			console.error(e);
+
 			return c.json(...ErrorResponse(e));
 		}
 	},
@@ -134,6 +161,8 @@ const StudentController = {
 
 			return c.json(...SuccessResponse('ดึงข้อมูลนักเรียนสำเร็จ', students));
 		} catch (e) {
+			console.error(e);
+
 			return c.json(...ErrorResponse(e));
 		}
 	},
@@ -165,17 +194,17 @@ const StudentController = {
 				const existingStudent = await StudentModel.getById(id);
 				if (!existingStudent) return c.json(...FailedResponse('ไม่พบนักเรียน'));
 
-				let processedFormData = payload.data.form_data;
+				// Merge with existing form_data to preserve fields not being updated
+				let processedFormData = { ...existingStudent.form_data, ...payload.data.form_data };
 
 				const hasFormDataFiles = formData.entries().next().value;
-				console.log('Has FormData files:', !!hasFormDataFiles);
 
 				if (hasFormDataFiles) {
-					console.log('Processing files from FormData...');
 					try {
 						const fileData = await StorageUtil.processFormDataFiles(formData);
-						console.log('File processing result:', fileData);
-						processedFormData = { ...processedFormData, ...fileData };
+						
+						// Deep merge to preserve nested object properties
+						processedFormData = deepMerge(processedFormData, fileData);
 
 						await StorageUtil.cleanupOldFiles(
 							existingStudent.form_data,
@@ -264,10 +293,12 @@ const StudentController = {
 				}
 			}
 
-			const deletedStudent = await StudentModel.delete(id);
+			await StudentModel.delete(id);
 
 			return c.json(...SuccessResponse('ลบนักเรียนสำเร็จ!', null));
 		} catch (e) {
+			console.error(e);
+
 			return c.json(...ErrorResponse(e));
 		}
 	},
@@ -291,6 +322,8 @@ const StudentController = {
 
 			return c.json(...SuccessResponse('อัปเดตสถานะนักเรียนสำเร็จ!', updatedStudent));
 		} catch (e) {
+			console.error(e);
+
 			return c.json(...ErrorResponse(e));
 		}
 	},
@@ -359,6 +392,8 @@ const StudentController = {
 				return c.json(...SuccessResponse('ส่งฟอร์มสำเร็จ!', finalStudent));
 			}
 		} catch (e) {
+			console.error(e);
+
 			return c.json(...ErrorResponse(e));
 		}
 	},
@@ -375,6 +410,8 @@ const StudentController = {
 
 			return c.json(...SuccessResponse('ดึงจำนวนนักเรียนสำเร็จ', { count }));
 		} catch (e) {
+			console.error(e);
+
 			return c.json(...ErrorResponse(e));
 		}
 	},
@@ -414,6 +451,8 @@ const StudentController = {
 				})
 			);
 		} catch (e) {
+			console.error(e);
+
 			return c.json(...ErrorResponse(e));
 		}
 	},
@@ -465,6 +504,8 @@ const StudentController = {
 				return c.json(...FailedResponse('Token ไม่ถูกต้องหรือหมดอายุ'));
 			}
 		} catch (e) {
+			console.error(e);
+
 			return c.json(...ErrorResponse(e));
 		}
 	},

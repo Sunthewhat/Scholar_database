@@ -30,7 +30,7 @@ const ScholarFieldController = {
 
 			const newField = await ScholarFieldModel.create({
 				...payload.data,
-				scholar_id: new mongoose.Types.ObjectId(payload.data.scholar_id)
+				scholar_id: new mongoose.Types.ObjectId(payload.data.scholar_id),
 			});
 
 			// Update student statuses for this scholar (async, don't wait)
@@ -38,6 +38,8 @@ const ScholarFieldController = {
 
 			return c.json(...SuccessResponse('สร้างฟิลด์สำเร็จ!', newField));
 		} catch (e) {
+			console.error(e);
+
 			return c.json(...ErrorResponse(e));
 		}
 	},
@@ -53,6 +55,8 @@ const ScholarFieldController = {
 
 			return c.json(...SuccessResponse('ดึงข้อมูลฟิลด์สำเร็จ', fields));
 		} catch (e) {
+			console.error(e);
+
 			return c.json(...ErrorResponse(e));
 		}
 	},
@@ -70,6 +74,8 @@ const ScholarFieldController = {
 
 			return c.json(...SuccessResponse('ดึงข้อมูลฟิลด์สำเร็จ', field));
 		} catch (e) {
+			console.error(e);
+
 			return c.json(...ErrorResponse(e));
 		}
 	},
@@ -97,6 +103,8 @@ const ScholarFieldController = {
 
 			return c.json(...SuccessResponse('อัปเดตฟิลด์สำเร็จ!', updatedField));
 		} catch (e) {
+			console.error(e);
+
 			return c.json(...ErrorResponse(e));
 		}
 	},
@@ -117,6 +125,8 @@ const ScholarFieldController = {
 
 			return c.json(...SuccessResponse('ลบฟิลด์สำเร็จ!', deletedField));
 		} catch (e) {
+			console.error(e);
+
 			return c.json(...ErrorResponse(e));
 		}
 	},
@@ -138,6 +148,8 @@ const ScholarFieldController = {
 
 			return c.json(...SuccessResponse('เรียงลำดับฟิลด์สำเร็จ!', result));
 		} catch (e) {
+			console.error(e);
+
 			return c.json(...ErrorResponse(e));
 		}
 	},
@@ -165,6 +177,8 @@ const ScholarFieldController = {
 
 			return c.json(...SuccessResponse('เพิ่มคำถามสำเร็จ!', updatedField));
 		} catch (e) {
+			console.error(e);
+
 			return c.json(...ErrorResponse(e));
 		}
 	},
@@ -198,6 +212,8 @@ const ScholarFieldController = {
 
 			return c.json(...SuccessResponse('อัปเดตคำถามสำเร็จ!', updatedField));
 		} catch (e) {
+			console.error(e);
+
 			return c.json(...ErrorResponse(e));
 		}
 	},
@@ -220,6 +236,8 @@ const ScholarFieldController = {
 
 			return c.json(...SuccessResponse('ลบคำถามสำเร็จ!', updatedField));
 		} catch (e) {
+			console.error(e);
+
 			return c.json(...ErrorResponse(e));
 		}
 	},
@@ -243,6 +261,8 @@ const ScholarFieldController = {
 
 			return c.json(...SuccessResponse('เรียงลำดับคำถามสำเร็จ!', updatedField));
 		} catch (e) {
+			console.error(e);
+
 			return c.json(...ErrorResponse(e));
 		}
 	},

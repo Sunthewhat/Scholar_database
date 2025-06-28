@@ -27,6 +27,8 @@ const UserController = {
 
 			return c.json(...SuccessResponse('สร้างผู้ดูแลระบบสำเร็จ!', userResponse));
 		} catch (e) {
+			console.error(e);
+
 			return c.json(...ErrorResponse(e));
 		}
 	},
@@ -51,6 +53,8 @@ const UserController = {
 
 			return c.json(...SuccessResponse('สร้างผู้ดูแลข้อมูลสำเร็จ!', userResponse));
 		} catch (e) {
+			console.error(e);
+
 			return c.json(...ErrorResponse(e));
 		}
 	},
@@ -89,6 +93,8 @@ const UserController = {
 				})
 			);
 		} catch (e) {
+			console.error(e);
+
 			return c.json(...ErrorResponse(e));
 		}
 	},
@@ -109,6 +115,8 @@ const UserController = {
 				})
 			);
 		} catch (e) {
+			console.error(e);
+
 			return c.json(...ErrorResponse(e));
 		}
 	},
@@ -142,6 +150,8 @@ const UserController = {
 
 			return c.json(...SuccessResponse('เปลี่ยนรหัสผ่านสำเร็จ!'));
 		} catch (e) {
+			console.error(e);
+
 			return c.json(...ErrorResponse(e));
 		}
 	},
@@ -151,6 +161,8 @@ const UserController = {
 
 			return c.json(...SuccessResponse('ดึงข้อมูลผู้ใช้งานทั้งหมดสำเร็จ', users));
 		} catch (e) {
+			console.error(e);
+
 			return c.json(...ErrorResponse(e));
 		}
 	},
@@ -184,6 +196,8 @@ const UserController = {
 				})
 			);
 		} catch (e) {
+			console.error(e);
+
 			return c.json(...ErrorResponse(e));
 		}
 	},
@@ -217,6 +231,8 @@ const UserController = {
 
 			return c.json(...SuccessResponse('เปลี่ยนบทบาทผู้ใช้งานสำเร็จ!', updatedUser));
 		} catch (e) {
+			console.error(e);
+
 			return c.json(...ErrorResponse(e));
 		}
 	},

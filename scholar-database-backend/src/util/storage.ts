@@ -14,7 +14,7 @@ interface FileUploadResponse {
 	};
 }
 
-const isFile = (value: FormDataEntryValue): value is File => {
+export const isFile = (value: FormDataEntryValue): value is File => {
 	return value instanceof File;
 };
 
@@ -80,6 +80,11 @@ export const StorageUtil = {
 		const fileUploads: Promise<void>[] = [];
 
 		for (const [key, value] of formData.entries()) {
+			// Skip the form_data field as it should be handled separately
+			if (key === 'form_data') {
+				continue;
+			}
+
 			if (isFile(value)) {
 				fileUploads.push(
 					(async () => {

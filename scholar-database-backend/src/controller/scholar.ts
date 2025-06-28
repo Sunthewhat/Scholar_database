@@ -21,6 +21,8 @@ const ScholarController = {
 
 			return c.json(...SuccessResponse('สร้างทุนการศึกษาสำเร็จ!', newScholar));
 		} catch (e) {
+			console.error(e);
+
 			return c.json(...ErrorResponse(e));
 		}
 	},
@@ -30,6 +32,8 @@ const ScholarController = {
 			const scholars = await ScholarModel.getAll();
 			return c.json(...SuccessResponse('ดึงข้อมูลทุนการศึกษาสำเร็จ', scholars));
 		} catch (e) {
+			console.error(e);
+
 			return c.json(...ErrorResponse(e));
 		}
 	},
@@ -39,6 +43,8 @@ const ScholarController = {
 			const scholars = await ScholarModel.getActive();
 			return c.json(...SuccessResponse('ดึงข้อมูลทุนการศึกษาที่เปิดใช้งานสำเร็จ', scholars));
 		} catch (e) {
+			console.error(e);
+
 			return c.json(...ErrorResponse(e));
 		}
 	},
@@ -55,6 +61,8 @@ const ScholarController = {
 
 			return c.json(...SuccessResponse('ดึงข้อมูลทุนการศึกษาสำเร็จ', scholar));
 		} catch (e) {
+			console.error(e);
+
 			return c.json(...ErrorResponse(e));
 		}
 	},
@@ -78,6 +86,8 @@ const ScholarController = {
 
 			return c.json(...SuccessResponse('อัปเดตทุนการศึกษาสำเร็จ!', updatedScholar));
 		} catch (e) {
+			console.error(e);
+
 			return c.json(...ErrorResponse(e));
 		}
 	},
@@ -94,7 +104,7 @@ const ScholarController = {
 
 			// Get all students for this scholar to clean up their files
 			const students = await StudentModel.getByScholar(id);
-			
+
 			// Clean up student files
 			for (const student of students) {
 				if (student.form_data) {
@@ -121,8 +131,12 @@ const ScholarController = {
 			// Finally delete the scholar
 			const deletedScholar = await ScholarModel.delete(id);
 
-			return c.json(...SuccessResponse('ลบทุนการศึกษาและข้อมูลที่เกี่ยวข้องสำเร็จ!', deletedScholar));
+			return c.json(
+				...SuccessResponse('ลบทุนการศึกษาและข้อมูลที่เกี่ยวข้องสำเร็จ!', deletedScholar)
+			);
 		} catch (e) {
+			console.error(e);
+
 			return c.json(...ErrorResponse(e));
 		}
 	},
@@ -145,6 +159,8 @@ const ScholarController = {
 			const statusText = status === 'active' ? 'เปิดใช้งาน' : 'ปิดใช้งาน';
 			return c.json(...SuccessResponse(`${statusText}ทุนการศึกษาสำเร็จ!`, updatedScholar));
 		} catch (e) {
+			console.error(e);
+
 			return c.json(...ErrorResponse(e));
 		}
 	},
