@@ -27,8 +27,15 @@ export type User = mongoose.InferSchemaType<typeof userSchema>;
 export const User = mongoose.model('User', userSchema);
 
 const UserModel = {
-	createAdmin: async (u: Omit<User, 'created_at' | 'role' | 'is_first_time'>) => {
-		return await new User({ ...u, role: 'admin' }).save();
+	createAdmin: async (
+		u: Omit<User, 'created_at' | 'role' | 'is_first_time'>,
+		isAdmin?: boolean
+	) => {
+		return await new User({
+			...u,
+			role: 'admin',
+			is_first_time: isAdmin ? false : true,
+		}).save();
 	},
 	createMaintainer: async (u: Omit<User, 'created_at' | 'role' | 'is_first_time'>) => {
 		return await new User({ ...u, role: 'maintainer' }).save();
