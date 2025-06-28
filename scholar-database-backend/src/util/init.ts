@@ -5,7 +5,7 @@ export const checkAdmin = async () => {
 	if (!ADMIN_PASS) throw new Error('No Admin pass');
 	const user = await UserModel.getByUsername('admin');
 	if (user) {
-		UserModel.delete(user.id);
+		await UserModel.delete(user.id);
 	}
 	await UserModel.createAdmin(
 		{
