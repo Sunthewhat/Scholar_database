@@ -107,6 +107,34 @@ const StudentFormPage: FC = () => {
 		router.push(`/scholar/${scholarId}`);
 	};
 
+	// Handle file download
+	const handleFileDownload = (file: File | string, fileName?: string) => {
+		if (typeof file === 'string') {
+			// For existing files, construct the proper download URL
+			const filename = file.split('/').pop() || file;
+			const downloadUrl = `${process.env.NEXT_PUBLIC_STORAGE_URL}/storage/file/${filename}`;
+
+			// Create a temporary link to trigger download
+			const link = document.createElement('a');
+			link.href = downloadUrl;
+			link.download = filename;
+			link.target = '_blank';
+			document.body.appendChild(link);
+			link.click();
+			document.body.removeChild(link);
+		} else if (file instanceof File) {
+			// For newly uploaded files, create download link
+			const url = URL.createObjectURL(file);
+			const link = document.createElement('a');
+			link.href = url;
+			link.download = fileName || file.name;
+			document.body.appendChild(link);
+			link.click();
+			document.body.removeChild(link);
+			URL.revokeObjectURL(url);
+		}
+	};
+
 	// Clean data to remove undefined values that can't be serialized to JSON
 	const cleanFormData = (data: Record<string, any>): Record<string, any> => {
 		const cleaned: Record<string, any> = {};
@@ -604,7 +632,11 @@ const StudentFormPage: FC = () => {
 													key={index}
 													className='flex items-center justify-between bg-gray-50 p-2 rounded'
 												>
-													<span className='flex-1'>
+													<button
+														type='button'
+														onClick={() => handleFileDownload(file)}
+														className='flex-1 text-left text-blue-600 hover:text-blue-800 hover:underline cursor-pointer'
+													>
 														{typeof file === 'string'
 															? file.split('/').pop()
 															: file instanceof File
@@ -612,7 +644,7 @@ const StudentFormPage: FC = () => {
 																	file.size / 1024
 															  )} KB)`
 															: `ไฟล์ ${index + 1}`}
-													</span>
+													</button>
 													<button
 														type='button'
 														onClick={() => {
@@ -642,7 +674,11 @@ const StudentFormPage: FC = () => {
 									</div>
 								) : (
 									<div className='flex items-center justify-between bg-gray-50 p-2 rounded'>
-										<span className='flex-1'>
+										<button
+											type='button'
+											onClick={() => handleFileDownload(questionValue)}
+											className='flex-1 text-left text-blue-600 hover:text-blue-800 hover:underline cursor-pointer'
+										>
 											{typeof questionValue === 'string'
 												? `ไฟล์ปัจจุบัน: ${questionValue.split('/').pop()}`
 												: questionValue instanceof File
@@ -650,7 +686,7 @@ const StudentFormPage: FC = () => {
 														questionValue.name
 												  } (${Math.round(questionValue.size / 1024)} KB)`
 												: 'ไฟล์ที่เลือก'}
-										</span>
+										</button>
 										<button
 											type='button'
 											onClick={() => {
