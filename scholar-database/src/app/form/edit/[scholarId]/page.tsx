@@ -388,8 +388,8 @@ const EditFormPage: FC = () => {
 			await Promise.all(updatePromises);
 
 			// Navigate back to home with success
-			// router.push('/?updated=true');
-			router.back();
+			router.push('/');
+			// router.back();
 		} catch (error: any) {
 			console.error('Save error:', error);
 			const errorMessage =
