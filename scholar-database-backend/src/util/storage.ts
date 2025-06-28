@@ -1,5 +1,7 @@
 const STORAGE_URL = Bun.env.STORAGE_URL || '';
 
+const PUBLIC_STORAGE_URL = Bun.env.PUBLIC_STORAGE_URL || '';
+
 interface FileUploadResponse {
 	success: boolean;
 	msg: string;
@@ -62,10 +64,10 @@ export const StorageUtil = {
 	},
 
 	getFileUrl: (filename: string): string => {
-		if (!STORAGE_URL) {
+		if (!PUBLIC_STORAGE_URL) {
 			return '';
 		}
-		return `${STORAGE_URL}/storage/file/${filename}`;
+		return `${PUBLIC_STORAGE_URL}/storage/file/${filename}`;
 	},
 
 	extractFilenameFromUrl: (url: string): string | null => {

@@ -5,5 +5,6 @@ declare module 'bun' {
 		DEVELOPMENT: string;
 		JWT_SECRET: string;
 		STORAGE_URL: string;
+		PUBLIC_STORAGE_URL: string;
 	}
 }
