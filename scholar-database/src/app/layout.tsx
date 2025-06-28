@@ -16,6 +16,7 @@ export default function RootLayout({
 }>) {
 	return (
 		<html lang='en' className='h-full'>
+			<link rel='icon' href='/assets/logo.svg' type='image/svg' sizes='<generated>' />
 			<body className={noto.className + ' h-full'}>{children}</body>
 		</html>
 	);
