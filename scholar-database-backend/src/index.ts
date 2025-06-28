@@ -4,10 +4,11 @@ import { cors } from 'hono/cors';
 import { InitMongo } from './db/mongoose';
 import { MainRouter } from './router/main';
 import { AuthMiddlewareSetValue } from './types/middleware';
+import { checkAdmin } from './util/init';
 
 await InitMongo();
 
-
+await checkAdmin();
 
 fetch(Bun.env.STORAGE_URL).then((r) => {
 	if (r.status !== 200) throw new Error('Cannot connect to STORAGE');
