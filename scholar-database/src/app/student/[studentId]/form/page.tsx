@@ -135,6 +135,22 @@ const StudentFormPage: FC = () => {
 		}
 	};
 
+	const handleCancelCreation = async () => {
+		if (!isCreating) {
+			setIsEditMode(false);
+			// Reset form data to original student data
+			if (student) {
+				setFormData({
+					...student.form_data,
+					initialized: true,
+				});
+			}
+		} else {
+			await Axios.delete(`/student/${studentId}`);
+			router.back();
+		}
+	};
+
 	// Clean data to remove undefined values that can't be serialized to JSON
 	const cleanFormData = (data: Record<string, any>): Record<string, any> => {
 		const cleaned: Record<string, any> = {};
@@ -745,7 +761,7 @@ const StudentFormPage: FC = () => {
 				<div className='w-3/4 h-full flex flex-col mx-auto pt-16 mt-20'>
 					<div className='flex items-center justify-between mb-8'>
 						<h1 className='text-2xl font-semibold'>
-							{isEditMode ? 'แก้ไขฟอร์มข้อมูล' : 'ดูฟอร์มข้อมูล'}
+							{isEditMode ? 'กรอกข้อมูลนักเรียน' : 'ข้อมูลนักเรียน'}
 						</h1>
 					</div>
 
@@ -807,16 +823,7 @@ const StudentFormPage: FC = () => {
 						) : (
 							<>
 								<button
-									onClick={() => {
-										setIsEditMode(false);
-										// Reset form data to original student data
-										if (student) {
-											setFormData({
-												...student.form_data,
-												initialized: true,
-											});
-										}
-									}}
+									onClick={handleCancelCreation}
 									className='bg-red w-32 text-white text-center px-4 py-2 rounded-xl hover:bg-red-600 transition-colors'
 								>
 									ยกเลิก

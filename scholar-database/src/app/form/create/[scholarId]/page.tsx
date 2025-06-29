@@ -28,9 +28,13 @@ const CreateFormPage: FC = () => {
 					`/scholar-field/scholar/${scholarId}`
 				);
 
-				if (response.status === 200 && response.data.success && response.data.data.length > 0) {
+				if (
+					response.status === 200 &&
+					response.data.success &&
+					response.data.data.length > 0
+				) {
 					// If sections exist, redirect to edit page instead
-					router.replace(`/form/edit/${scholarId}`);
+					router.replace(`/form/edit/${scholarId}?create=true`);
 					return;
 				}
 			} catch (error) {
@@ -231,7 +235,8 @@ const CreateFormPage: FC = () => {
 			(q) => q.question_id === questionId
 		);
 		if (questionIndex !== -1) {
-			newSections[sectionIndex].questions[questionIndex].allow_multiple = config.allow_multiple;
+			newSections[sectionIndex].questions[questionIndex].allow_multiple =
+				config.allow_multiple;
 			newSections[sectionIndex].questions[questionIndex].file_types = config.file_types;
 			setSections(newSections);
 		}
@@ -298,7 +303,7 @@ const CreateFormPage: FC = () => {
 				setSaveError(`กรุณาเพิ่มคำถามในหัวข้อ "${section.field_label}"`);
 				return;
 			}
-			
+
 			// Validate questions
 			for (let j = 0; j < section.questions.length; j++) {
 				const question = section.questions[j];
@@ -306,10 +311,14 @@ const CreateFormPage: FC = () => {
 					setSaveError(`กรุณากรอกคำถามที่ ${j + 1} ในหัวข้อ "${section.field_label}"`);
 					return;
 				}
-				
+
 				// Validate choice-based questions have options
 				if (['radio', 'checkbox', 'dropdown'].includes(question.question_type)) {
-					if (!question.options || question.options.length === 0 || question.options.every(opt => !opt.trim())) {
+					if (
+						!question.options ||
+						question.options.length === 0 ||
+						question.options.every((opt) => !opt.trim())
+					) {
 						setSaveError(`กรุณาเพิ่มตัวเลือกสำหรับคำถาม "${question.question_label}"`);
 						return;
 					}
@@ -329,21 +338,24 @@ const CreateFormPage: FC = () => {
 					field_label: section.field_label,
 					field_description: section.field_description || '',
 					order: section.order,
-					questions: section.questions.map(q => ({
+					questions: section.questions.map((q) => ({
 						question_id: q.question_id,
 						question_type: q.question_type,
 						question_label: q.question_label,
 						required: q.required || false,
 						options: q.options || [],
-						allow_other: ['radio', 'checkbox', 'dropdown'].includes(q.question_type) ? q.allow_other || false : undefined,
+						allow_other: ['radio', 'checkbox', 'dropdown'].includes(q.question_type)
+							? q.allow_other || false
+							: undefined,
 						table_config: q.table_config,
-						allow_multiple: q.question_type === 'file_upload' ? q.allow_multiple : undefined,
+						allow_multiple:
+							q.question_type === 'file_upload' ? q.allow_multiple : undefined,
 						file_types: q.question_type === 'file_upload' ? q.file_types : undefined,
 						order: q.order,
 						placeholder: q.placeholder,
 						help_text: q.help_text,
-						validation: q.validation
-					}))
+						validation: q.validation,
+					})),
 				});
 
 				if (response.status !== 200 || !response.data.success) {
@@ -354,13 +366,13 @@ const CreateFormPage: FC = () => {
 			});
 
 			await Promise.all(savePromises);
-			
+
 			// Navigate back to home with success
 			router.push('/?saved=true');
-
 		} catch (error: any) {
 			console.error('Save error:', error);
-			const errorMessage = error.response?.data?.msg || error.message || 'เกิดข้อผิดพลาดในการบันทึกฟอร์ม';
+			const errorMessage =
+				error.response?.data?.msg || error.message || 'เกิดข้อผิดพลาดในการบันทึกฟอร์ม';
 			setSaveError(errorMessage);
 		} finally {
 			setIsSaving(false);
@@ -471,8 +483,8 @@ const CreateFormPage: FC = () => {
 							type='button'
 							disabled={isSaving}
 							className={`w-32 py-2 text-white rounded-xl transition-colors ${
-								isSaving 
-									? 'bg-gray-400 cursor-not-allowed' 
+								isSaving
+									? 'bg-gray-400 cursor-not-allowed'
 									: 'bg-green hover:bg-green-600'
 							}`}
 						>
@@ -483,8 +495,8 @@ const CreateFormPage: FC = () => {
 							type='button'
 							disabled={isSaving}
 							className={`w-32 text-white flex py-2 justify-center gap-2 rounded-xl transition-colors ${
-								isSaving 
-									? 'bg-gray-400 cursor-not-allowed' 
+								isSaving
+									? 'bg-gray-400 cursor-not-allowed'
 									: 'bg-violet-3 hover:bg-blue-600'
 							}`}
 						>
