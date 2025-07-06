@@ -22,6 +22,12 @@ StudentRouter.get('/scholar/:scholarId/count', StudentController.getCountBySchol
 // GET /student/status/:status - Get students by status (must come before /:id)
 StudentRouter.get('/status/:status', StudentController.getByStatus);
 
+// GET /student/search - Search all students
+StudentRouter.get('/search', StudentController.searchAll);
+
+// GET /student/search/:scholarId - Search students by scholar ID
+StudentRouter.get('/search/:scholarId', StudentController.searchByScholar);
+
 // GET /student/:id - Get student by ID (must come after specific routes)
 StudentRouter.get('/:id', StudentController.getById);
 

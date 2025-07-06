@@ -5,10 +5,17 @@ import { Modal } from '@/components/modal';
 import { getCookieValue, clearAuthCookies } from '@/utils/cookie';
 import { FC, useEffect, useState } from 'react';
 
-const NavBar: FC = () => {
+type NavBarProps = {
+	onSearch?: (query: string, type: 'name' | 'keyword') => void;
+	searchQuery?: string;
+	searchType?: 'name' | 'keyword';
+};
+
+const NavBar: FC<NavBarProps> = ({ onSearch, searchQuery: externalSearchQuery, searchType: externalSearchType }) => {
 	const [userName, setUserName] = useState<string>('');
 	const [userRole, setUserRole] = useState<string>('');
 	const [searchType, setSearchType] = useState<'name' | 'keyword'>('name');
+	const [searchQuery, setSearchQuery] = useState<string>('');
 	const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 	const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
 	const navigator = useRouter();
@@ -19,6 +26,32 @@ const NavBar: FC = () => {
 		setUserName(getCookieValue('userName'));
 		setUserRole(getCookieValue('userRole'));
 	}, []);
+
+	useEffect(() => {
+		if (externalSearchQuery !== undefined) {
+			setSearchQuery(externalSearchQuery);
+		}
+		if (externalSearchType !== undefined) {
+			setSearchType(externalSearchType);
+		}
+	}, [externalSearchQuery, externalSearchType]);
+
+	const isShowSearch = () => {
+		return path === '/' || path.startsWith('/scholar');
+	}
+
+	const getSearchLabels = () => {
+		if (path.startsWith('/scholar/')) {
+			return {
+				name: 'ค้นหาจากชื่อ',
+				keyword: 'ค้นหาจากคำที่เกี่ยวข้อง'
+			};
+		}
+		return {
+			name: 'ค้นหาจากชื่อทุน',
+			keyword: 'ค้นหาจากคำที่เกี่ยวข้อง'
+		};
+	};
 
 	const handleLogoutClick = () => {
 		setIsDropdownOpen(false);
@@ -55,6 +88,28 @@ const NavBar: FC = () => {
 		navigator.push('/admin');
 	};
 
+	const handleSearch = (e: React.FormEvent) => {
+		e.preventDefault();
+		if (onSearch) {
+			onSearch(searchQuery, searchType);
+		}
+	};
+
+	const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+		const value = e.target.value;
+		setSearchQuery(value);
+		if (onSearch) {
+			onSearch(value, searchType);
+		}
+	};
+
+	const handleSearchTypeChange = (type: 'name' | 'keyword') => {
+		setSearchType(type);
+		if (onSearch && searchQuery) {
+			onSearch(searchQuery, type);
+		}
+	};
+
 	return (
 		<nav className='fixed w-full top-0 left-0 h-20 flex items-center justify-between px-10 z-20 mt-4'>
 			<Image
@@ -66,21 +121,25 @@ const NavBar: FC = () => {
 				onClick={() => navigator.push('/')}
 				priority
 			/>
-			{path === '/' && (
+			{isShowSearch() && (
 				<div className='flex items-center gap-4 w-[80%]'>
-					<div className='relative flex items-center w-[80%]'>
+					<form onSubmit={handleSearch} className='relative flex items-center w-[80%]'>
 						<input
 							className='w-full px-4 py-2 pr-10 rounded-full shadow-md'
 							placeholder='ค้นหา...'
+							value={searchQuery}
+							onChange={handleSearchInputChange}
 						/>
-						<Image
-							src='/assets/search.svg'
-							alt='search'
-							className='absolute right-3 w-5 h-5 cursor-pointer'
-							width={16}
-							height={16}
-						/>
-					</div>
+						<button type='submit' className='absolute right-3 w-5 h-5 cursor-pointer'>
+							<Image
+								src='/assets/search.svg'
+								alt='search'
+								className='w-5 h-5'
+								width={16}
+								height={16}
+							/>
+						</button>
+					</form>
 					<div className='flex gap-1 flex-col w-[20%] text-violet-3'>
 						<label className='flex items-center gap-2 cursor-pointer'>
 							<input
@@ -89,11 +148,11 @@ const NavBar: FC = () => {
 								value='name'
 								checked={searchType === 'name'}
 								onChange={(e) =>
-									setSearchType(e.target.value as 'name' | 'keyword')
+									handleSearchTypeChange(e.target.value as 'name' | 'keyword')
 								}
 								className='accent-violet-3'
 							/>
-							<span className='text-sm'>ค้นหาจากชื่อทุน</span>
+							<span className='text-sm'>{getSearchLabels().name}</span>
 						</label>
 						<label className='flex items-center gap-2 cursor-pointer'>
 							<input
@@ -102,11 +161,11 @@ const NavBar: FC = () => {
 								value='keyword'
 								checked={searchType === 'keyword'}
 								onChange={(e) =>
-									setSearchType(e.target.value as 'name' | 'keyword')
+									handleSearchTypeChange(e.target.value as 'name' | 'keyword')
 								}
 								className='accent-violet-3'
 							/>
-							<span className='text-sm'>ค้นหาจากคำที่เกี่ยวข้อง</span>
+							<span className='text-sm'>{getSearchLabels().keyword}</span>
 						</label>
 					</div>
 				</div>

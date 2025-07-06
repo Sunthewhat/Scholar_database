@@ -41,4 +41,5 @@ export namespace StudentResponse {
 	export type deleteStudent = BaseResponse<null>;
 	export type submitForm = BaseResponse<Student>;
 	export type getCount = BaseResponse<{ count: number }>;
+	export type search = BaseResponse<Student[]>;
 }

@@ -57,10 +57,7 @@ const StudentModel = {
 	delete: async (id: string) => {
 		return await Student.findByIdAndDelete(id);
 	},
-	setStatus: async (
-		id: string,
-		status: 'incomplete' | 'completed'
-	) => {
+	setStatus: async (id: string, status: 'incomplete' | 'completed') => {
 		const updateData: any = { status, updated_at: new Date() };
 		if (status === 'completed') {
 			updateData.submitted_at = new Date();
@@ -77,16 +74,15 @@ const StudentModel = {
 			submitted_at: new Date(),
 			updated_at: new Date(),
 		};
-		
+
 		if (fullname) {
 			updateData.fullname = fullname;
 		}
-		
-		return await Student.findByIdAndUpdate(
-			id,
-			updateData,
-			{ new: true, runValidators: true }
-		).populate('scholar_id');
+
+		return await Student.findByIdAndUpdate(id, updateData, {
+			new: true,
+			runValidators: true,
+		}).populate('scholar_id');
 	},
 	countByScholar: async (scholarId: string) => {
 		return await Student.countDocuments({ scholar_id: scholarId });
@@ -103,21 +99,21 @@ const StudentModel = {
 
 		for (const field of scholarFields) {
 			const fieldData = formData[field._id] || {};
-			
+
 			// Check ALL questions regardless of required flag - all fields are considered required
 			for (const question of field.questions) {
 				const value = fieldData[question.question_id];
-				
+
 				// Check if the value is empty or null
 				if (value === null || value === undefined || value === '') {
 					return false;
 				}
-				
+
 				// For arrays (checkboxes, multiple files), check if they have content
 				if (Array.isArray(value) && value.length === 0) {
 					return false;
 				}
-				
+
 				// For radio buttons with "other" option, check if other text is provided
 				if (value === 'other' && question.allow_other) {
 					const otherValue = fieldData[`${question.question_id}_other`];
@@ -125,7 +121,7 @@ const StudentModel = {
 						return false;
 					}
 				}
-				
+
 				// For checkboxes with "other" option, check if other text is provided when "other" is selected
 				if (Array.isArray(value) && value.includes('other') && question.allow_other) {
 					const otherValue = fieldData[`${question.question_id}_other`];
@@ -133,12 +129,12 @@ const StudentModel = {
 						return false;
 					}
 				}
-				
+
 				// For table questions, check if ALL cells are filled
 				if (question.question_type === 'table' && question.table_config) {
 					const tableData = value || {};
 					const { rows, columns } = question.table_config;
-					
+
 					// Check all data cells (excluding headers)
 					for (let row = 1; row < rows; row++) {
 						for (let col = 1; col < columns; col++) {
@@ -152,43 +148,49 @@ const StudentModel = {
 				}
 			}
 		}
-		
+
 		return true;
 	},
 
-	updateAllStudentStatusForScholar: async (scholarId: string, scholarFields: any[]): Promise<void> => {
+	updateAllStudentStatusForScholar: async (
+		scholarId: string,
+		scholarFields: any[]
+	): Promise<void> => {
 		try {
 			// Get all students for this scholar
 			const students = await Student.find({ scholar_id: scholarId });
-			
+
 			const bulkOperations = [];
-			
+
 			for (const student of students) {
 				// Check completion for each student
-				const isComplete = await StudentModel.checkFormCompletion(student._id.toString(), scholarFields);
+				const isComplete = await StudentModel.checkFormCompletion(
+					student._id.toString(),
+					scholarFields
+				);
 				const newStatus = isComplete ? 'completed' : 'incomplete';
-				
+
 				// Only update if status has changed
 				if (student.status !== newStatus) {
-					const updateData: any = { 
-						status: newStatus, 
-						updated_at: new Date() 
+					const updateData: any = {
+						status: newStatus,
+						updated_at: new Date(),
 					};
-					
+
 					// Set submitted_at if marking as completed and it doesn't already exist
 					if (newStatus === 'completed' && !student.submitted_at) {
 						updateData.submitted_at = new Date();
 					}
-					
+
 					bulkOperations.push({
 						updateOne: {
 							filter: { _id: student._id },
-							update: updateData
-						}
+							update: updateData,
+						},
 					});
 				}
 			}
-			
+
 			// Perform bulk update if there are operations
 			if (bulkOperations.length > 0) {
 				await Student.bulkWrite(bulkOperations);
@@ -198,6 +200,145 @@ const StudentModel = {
 			console.error('Error updating student statuses for scholar:', scholarId, error);
 			throw error;
 		}
+	},
+
+	search: async (keyword: string) => {
+		const searchRegex = new RegExp(keyword, 'i');
+
+		return await Student.aggregate([
+			{
+				$match: {
+					$or: [
+						{ fullname: { $regex: searchRegex } },
+						{
+							$expr: {
+								$gt: [
+									{
+										$size: {
+											$filter: {
+												input: { $objectToArray: '$form_data' },
+												as: 'field',
+												cond: {
+													$and: [
+														{ $eq: [{ $type: '$$field.v' }, 'object'] },
+														{ $ne: [{ $type: '$$field.v' }, 'array'] },
+														{
+															$gt: [
+																{
+																	$size: {
+																		$filter: {
+																			input: { $objectToArray: '$$field.v' },
+																			as: 'question',
+																			cond: {
+																				$regexMatch: {
+																					input: { $toString: '$$question.v' },
+																					regex: keyword,
+																					options: 'i'
+																				}
+																			}
+																		}
+																	}
+																},
+																0
+															]
+														}
+													]
+												}
+											}
+										}
+									},
+									0
+								]
+							}
+						}
+					]
+				}
+			},
+			{
+				$lookup: {
+					from: 'scholars',
+					localField: 'scholar_id',
+					foreignField: '_id',
+					as: 'scholar_id'
+				}
+			},
+			{
+				$unwind: {
+					path: '$scholar_id',
+					preserveNullAndEmptyArrays: true
+				}
+			}
+		]);
+	},
+
+	searchByScholar: async (scholarId: string, keyword: string) => {
+		const searchRegex = new RegExp(keyword, 'i');
+
+		return await Student.aggregate([
+			{
+				$match: {
+					scholar_id: new mongoose.Types.ObjectId(scholarId),
+					$or: [
+						{ fullname: { $regex: searchRegex } },
+						{
+							$expr: {
+								$gt: [
+									{
+										$size: {
+											$filter: {
+												input: { $objectToArray: '$form_data' },
+												as: 'field',
+												cond: {
+													$and: [
+														{ $eq: [{ $type: '$$field.v' }, 'object'] },
+														{ $ne: [{ $type: '$$field.v' }, 'array'] },
+														{
+															$gt: [
+																{
+																	$size: {
+																		$filter: {
+																			input: { $objectToArray: '$$field.v' },
+																			as: 'question',
+																			cond: {
+																				$regexMatch: {
+																					input: { $toString: '$$question.v' },
+																					regex: keyword,
+																					options: 'i'
+																				}
+																			}
+																		}
+																	}
+																},
+																0
+															]
+														}
+													]
+												}
+											}
+										}
+									},
+									0
+								]
+							}
+						}
+					]
+				}
+			},
+			{
+				$lookup: {
+					from: 'scholars',
+					localField: 'scholar_id',
+					foreignField: '_id',
+					as: 'scholar_id'
+				}
+			},
+			{
+				$unwind: {
+					path: '$scholar_id',
+					preserveNullAndEmptyArrays: true
+				}
+			}
+		]);
 	},
 };
 

@@ -17,6 +17,19 @@ const ScholarDetailPage: FC = () => {
 	const params = useParams();
 	const scholarId = params.scholarId as string;
 
+	const [searchQuery, setSearchQuery] = useState<string>('');
+	const [searchType, setSearchType] = useState<'name' | 'keyword'>('name');
+
+	const handleSearch = (query: string, type: 'name' | 'keyword') => {
+		setSearchQuery(query);
+		setSearchType(type);
+	};
+
+	const handleResetSearch = () => {
+		setSearchQuery('');
+		setSearchType('name');
+	};
+
 	// Fetch scholar data using the same pattern as other components
 	const {
 		data: scholar,
@@ -25,7 +38,10 @@ const ScholarDetailPage: FC = () => {
 	} = useApiData<Scholar>(`/scholar/${scholarId}`);
 
 	const [students, setStudents] = useState<Student[]>([]);
+	const [searchResults, setSearchResults] = useState<Student[]>([]);
 	const [isStudentsLoading, setIsStudentsLoading] = useState(true);
+	const [isSearching, setIsSearching] = useState(false);
+	const [searchError, setSearchError] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [isCreating, setIsCreating] = useState(false);
 	const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -60,6 +76,19 @@ const ScholarDetailPage: FC = () => {
 
 		fetchStudents();
 	}, [scholarId]);
+
+	// Search effect with debounce
+	useEffect(() => {
+		if (searchQuery && searchType === 'keyword') {
+			const timeoutId = setTimeout(() => {
+				searchStudents(searchQuery);
+			}, 500);
+
+			return () => clearTimeout(timeoutId);
+		} else {
+			setSearchResults([]);
+		}
+	}, [searchQuery, searchType]);
 
 	// Create new student
 	const handleCreateStudent = async () => {
@@ -152,6 +181,33 @@ const ScholarDetailPage: FC = () => {
 		router.push(`/student/${studentId}/form`);
 	};
 
+	const searchStudents = async (keyword: string) => {
+		if (!keyword.trim()) {
+			setSearchResults([]);
+			return;
+		}
+
+		try {
+			setIsSearching(true);
+			setSearchError(false);
+
+			const response = await Axios.get<StudentResponse.search>(
+				`/student/search/${scholarId}?keyword=${encodeURIComponent(keyword)}`
+			);
+
+			if (response.status === 200 && response.data.success) {
+				setSearchResults(response.data.data);
+			} else {
+				setSearchError(true);
+			}
+		} catch (error) {
+			console.error('Error searching students:', error);
+			setSearchError(true);
+		} finally {
+			setIsSearching(false);
+		}
+	};
+
 	const handleCloseLinkModal = () => {
 		setIsLinkModalOpen(false);
 		setGeneratedLink('');
@@ -202,9 +258,22 @@ const ScholarDetailPage: FC = () => {
 		);
 	}
 
+	// Filter students by name if search type is 'name'
+	const filteredStudents = searchQuery && searchType === 'name' 
+		? students.filter(student => 
+			student.fullname.toLowerCase().includes(searchQuery.toLowerCase())
+		) 
+		: students;
+
+	// Show student search results if search type is 'keyword'
+	const showStudentResults = searchType === 'keyword' && searchQuery;
+	
+	// Get the students to display
+	const studentsToDisplay = showStudentResults ? searchResults : filteredStudents;
+
 	return (
 		<AuthWrapper>
-			<HomeLayout>
+			<HomeLayout onSearch={handleSearch} searchQuery={searchQuery} searchType={searchType}>
 				<div className='w-3/4 h-full flex flex-col mx-auto mt-20 overflow-scroll'>
 					{/* Scholar Information Section */}
 					<div className='w-3/4 mb-10'>
@@ -266,7 +335,36 @@ const ScholarDetailPage: FC = () => {
 					)}
 
 					<div className='flex flex-col max-h-[70dvh] overflow-y-auto w-full'>
-						{students.length === 0 ? (
+						{/* Show search loading state */}
+						{showStudentResults && isSearching ? (
+							<div className='flex justify-center items-center h-40'>
+								<div className='text-lg text-gray-600'>กำลังค้นหา...</div>
+							</div>
+						) : showStudentResults && searchError ? (
+							<div className='flex flex-col items-center justify-center h-40 gap-4'>
+								<div className='text-lg text-red-500'>เกิดข้อผิดพลาดในการค้นหา</div>
+								<button
+									onClick={() => searchStudents(searchQuery)}
+									className='px-4 py-2 bg-violet-3 text-white rounded-lg hover:bg-violet-4 transition-colors'
+								>
+									ลองใหม่
+								</button>
+							</div>
+						) : showStudentResults && searchResults.length === 0 && !isSearching ? (
+							<div className='flex justify-center items-center h-40'>
+								<div className='text-lg text-gray-600'>ไม่พบผลลัพธ์การค้นหา</div>
+							</div>
+						) : searchQuery && searchType === 'name' && filteredStudents.length === 0 ? (
+							<div className='flex flex-col items-center justify-center h-40 gap-4'>
+								<div className='text-lg text-gray-600'>ไม่พบนักเรียนที่ตรงกับการค้นหา</div>
+								<button
+									onClick={handleResetSearch}
+									className='px-4 py-2 bg-violet-3 text-white rounded-lg hover:bg-violet-4 transition-colors'
+								>
+									รีเซ็ตการค้นหา
+								</button>
+							</div>
+						) : studentsToDisplay.length === 0 ? (
 							<div className='flex items-center justify-center h-40 text-gray-500'>
 								<p>
 									ยังไม่มีนักเรียน กดปุ่ม &quot;เพิ่มนักเรียน&quot; เพื่อเริ่มต้น
@@ -279,7 +377,7 @@ const ScholarDetailPage: FC = () => {
 									<h1 className='col-span-1'>สถานะ</h1>
 									<div className='absolute left-2/3 top-1/2 transform -translate-x-1/2 -translate-y-1/2 w-px h-3/4 bg-violet-3'></div>
 								</div>
-								{students.map((student, index) => {
+								{studentsToDisplay.map((student, index) => {
 									const statusInfo = getStatusDisplay(student.status);
 									return (
 										<div
@@ -360,8 +458,10 @@ const ScholarDetailPage: FC = () => {
 					<div className='w-full flex justify-end items-center mt-6'>
 						<p className='text-gray-600'>
 							จำนวนนักเรียนที่มีสถานะสมบูรณ์{' '}
-							{students.filter((s) => s.status === 'completed').length} /{' '}
-							{students.length} คน
+							{showStudentResults 
+								? searchResults.filter((s) => s.status === 'completed').length
+								: students.filter((s) => s.status === 'completed').length} /{' '}
+							{showStudentResults ? searchResults.length : students.length} คน
 						</p>
 					</div>
 				</div>

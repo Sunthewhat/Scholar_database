@@ -107,6 +107,19 @@ const StudentFormPage: FC = () => {
 		router.push(`/scholar/${scholarId}`);
 	};
 
+	// Check if a file is an image
+	const isImageFile = (fileName: string) => {
+		const imageExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp', '.heic', '.heif'];
+		const extension = fileName.toLowerCase().substring(fileName.lastIndexOf('.'));
+		return imageExtensions.includes(extension);
+	};
+
+	// Get image URL for preview
+	const getImageUrl = (fileName: string) => {
+		const filename = fileName.split('/').pop() || fileName;
+		return `${process.env.NEXT_PUBLIC_STORAGE_URL}/storage/file/${filename}`;
+	};
+
 	// Handle file download
 	const handleFileDownload = (file: File | string, fileName?: string) => {
 		if (typeof file === 'string') {
@@ -595,12 +608,6 @@ const StudentFormPage: FC = () => {
 				);
 
 			case 'file_upload':
-				const currentFiles = Array.isArray(questionValue)
-					? questionValue
-					: questionValue
-					? [questionValue]
-					: [];
-
 				return (
 					<div className='space-y-2'>
 						<input
@@ -608,88 +615,49 @@ const StudentFormPage: FC = () => {
 							onChange={(e) => {
 								const files = e.target.files;
 								if (files && files.length > 0) {
-									if (question.allow_multiple) {
-										// Add new files to existing ones
-										const newFiles = Array.from(files);
-										const updatedFiles = [...currentFiles, ...newFiles];
-										handleFieldChange(
-											field._id!,
-											question.question_id,
-											updatedFiles
-										);
-									} else {
-										handleFieldChange(
-											field._id!,
-											question.question_id,
-											files[0]
-										);
-									}
+									handleFieldChange(
+										field._id!,
+										question.question_id,
+										files[0]
+									);
 									// Clear the input so same file can be selected again
 									e.target.value = '';
 								}
 							}}
 							accept={question.file_types ? question.file_types.join(',') : undefined}
-							multiple={false} // Always single selection for better UX
 							className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 ${
 								!isEditMode ? 'cursor-not-allowed bg-gray-50' : ''
 							}`}
 							disabled={!isEditMode}
 						/>
-						{currentFiles.length > 0 && (
+						{questionValue && (
 							<div className='text-sm text-gray-600'>
-								{question.allow_multiple ? (
-									<div>
-										<div className='font-medium mb-2'>
-											{currentFiles.length} ไฟล์ที่เลือก:
+								<div className='bg-gray-50 p-2 rounded space-y-2'>
+									{typeof questionValue === 'string' && isImageFile(questionValue) && (
+										<div className='border border-gray-200 rounded-lg p-2 bg-white'>
+											<img
+												src={getImageUrl(questionValue)}
+												alt={questionValue.split('/').pop()}
+												className='max-w-sm max-h-48 object-contain rounded'
+												onError={(e) => {
+													e.currentTarget.style.display = 'none';
+												}}
+											/>
 										</div>
-										<div className='space-y-1'>
-											{currentFiles.map((file, index) => (
-												<div
-													key={index}
-													className='flex items-center justify-between bg-gray-50 p-2 rounded'
-												>
-													<button
-														type='button'
-														onClick={() => handleFileDownload(file)}
-														className='flex-1 text-left text-blue-600 hover:text-blue-800 hover:underline cursor-pointer'
-													>
-														{typeof file === 'string'
-															? file.split('/').pop()
-															: file instanceof File
-															? `${file.name} (${Math.round(
-																	file.size / 1024
-															  )} KB)`
-															: `ไฟล์ ${index + 1}`}
-													</button>
-													<button
-														type='button'
-														onClick={() => {
-															const newFiles = currentFiles.filter(
-																(_, i) => i !== index
-															);
-															handleFieldChange(
-																field._id!,
-																question.question_id,
-																newFiles.length > 0
-																	? newFiles
-																	: null
-															);
-														}}
-														className={`ml-2 text-red-500 hover:text-red-700 text-xs px-2 py-1 rounded ${
-															!isEditMode
-																? 'cursor-not-allowed opacity-50'
-																: ''
-														}`}
-														disabled={!isEditMode}
-													>
-														ลบ
-													</button>
-												</div>
-											))}
+									)}
+									{questionValue instanceof File && isImageFile(questionValue.name) && (
+										<div className='border border-gray-200 rounded-lg p-2 bg-white'>
+											<img
+												src={URL.createObjectURL(questionValue)}
+												alt={questionValue.name}
+												className='max-w-sm max-h-48 object-contain rounded'
+												onError={(e) => {
+													e.currentTarget.style.display = 'none';
+												}}
+											/>
 										</div>
-									</div>
-								) : (
-									<div className='flex items-center justify-between bg-gray-50 p-2 rounded'>
+									)}
+									<div className='flex items-center justify-between'>
 										<button
 											type='button'
 											onClick={() => handleFileDownload(questionValue)}
@@ -720,7 +688,7 @@ const StudentFormPage: FC = () => {
 											ลบ
 										</button>
 									</div>
-								)}
+								</div>
 							</div>
 						)}
 					</div>

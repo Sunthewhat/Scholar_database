@@ -590,7 +590,7 @@ export const QuestionPreview: FC<QuestionPreviewProps> = ({
 						<div className='w-full px-3 py-2 border-2 border-dashed border-grey rounded-md text-center'>
 							<div className='space-y-2'>
 								<div className='text-gray-500 text-sm'>
-									คลิกเพื่ออัปโหลดไฟล์{question.allow_multiple ? ' (หลายไฟล์)' : ''}
+									คลิกเพื่ออัปโหลดไฟล์
 								</div>
 								{question.file_types && question.file_types.length > 0 && (
 									<div className='text-xs text-gray-400'>
@@ -604,26 +604,6 @@ export const QuestionPreview: FC<QuestionPreviewProps> = ({
 						<div className='bg-gray-50 p-3 rounded-md space-y-3'>
 							<h4 className='text-sm font-medium text-gray-700'>การตั้งค่าไฟล์</h4>
 							
-							{/* Allow Multiple Files */}
-							<div className='flex items-center space-x-2'>
-								<input
-									type='checkbox'
-									id='allow_multiple'
-									checked={question.allow_multiple || false}
-									onChange={(e) => {
-										if (onUpdateFileConfig) {
-											onUpdateFileConfig({
-												allow_multiple: e.target.checked,
-												file_types: question.file_types,
-											});
-										}
-									}}
-									className='rounded'
-								/>
-								<label htmlFor='allow_multiple' className='text-sm text-gray-600'>
-									อนุญาตให้อัปโหลดหลายไฟล์
-								</label>
-							</div>
 							
 							{/* File Types */}
 							<div className='space-y-2'>
@@ -642,7 +622,7 @@ export const QuestionPreview: FC<QuestionPreviewProps> = ({
 															? [...currentTypes, fileType]
 															: currentTypes.filter(t => t !== fileType);
 														onUpdateFileConfig({
-															allow_multiple: question.allow_multiple,
+															allow_multiple: false,
 															file_types: newTypes,
 														});
 													}

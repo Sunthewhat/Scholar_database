@@ -5,9 +5,12 @@ import { usePathname } from 'next/navigation';
 
 type HomeLayoutProps = {
 	children: ReactNode;
+	onSearch?: (query: string, type: 'name' | 'keyword') => void;
+	searchQuery?: string;
+	searchType?: 'name' | 'keyword';
 };
 
-const HomeLayout: FC<HomeLayoutProps> = ({ children }) => {
+const HomeLayout: FC<HomeLayoutProps> = ({ children, onSearch, searchQuery, searchType }) => {
 	const rows = 10;
 	const columns = 15;
 
@@ -43,7 +46,7 @@ const HomeLayout: FC<HomeLayoutProps> = ({ children }) => {
 					</div>
 				))}
 			</div>
-			{!isTemp && <NavBar />}
+			{!isTemp && <NavBar onSearch={onSearch} searchQuery={searchQuery} searchType={searchType} />}
 			<div className='relative z-10 w-full h-full'>{children}</div>
 		</main>
 	);

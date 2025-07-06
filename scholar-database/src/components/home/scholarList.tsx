@@ -1,18 +1,22 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import { ScholarResponse, StudentResponse } from '@/types/response';
 import { Scholar } from '@/types/scholar';
+import { Student } from '@/types/student';
 import { Axios } from '@/util/axios';
 import { Modal } from '@/components/modal';
 import Image from 'next/image';
 import { Dispatch, FC, SetStateAction, useEffect, useState } from 'react';
 import { useApiData } from '@/utils/api';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 
 type ScholarListType = {
 	setCount: Dispatch<SetStateAction<number>>;
+	searchQuery?: string;
+	searchType?: 'name' | 'keyword';
+	onResetSearch?: () => void;
 };
 
-const ScholarList: FC<ScholarListType> = ({ setCount }) => {
+const ScholarList: FC<ScholarListType> = ({ setCount, searchQuery, searchType, onResetSearch }) => {
 	const {
 		data: scholars,
 		isLoading,
@@ -22,11 +26,15 @@ const ScholarList: FC<ScholarListType> = ({ setCount }) => {
 	} = useApiData<Scholar[]>('/scholar');
 
 	const router = useRouter();
+	const pathname = usePathname();
 
 	const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 	const [scholarToDelete, setScholarToDelete] = useState<Scholar | null>(null);
 	const [isDeleting, setIsDeleting] = useState(false);
 	const [studentCounts, setStudentCounts] = useState<Record<string, number>>({});
+	const [searchResults, setSearchResults] = useState<Student[]>([]);
+	const [isSearching, setIsSearching] = useState(false);
+	const [searchError, setSearchError] = useState(false);
 
 	const handleDeleteClick = (scholar: Scholar) => {
 		setScholarToDelete(scholar);
@@ -75,6 +83,44 @@ const ScholarList: FC<ScholarListType> = ({ setCount }) => {
 		router.push(`/scholar/${scholarId}`);
 	};
 
+	const searchStudents = async (keyword: string) => {
+		if (!keyword.trim()) {
+			setSearchResults([]);
+			return;
+		}
+
+		try {
+			setIsSearching(true);
+			setSearchError(false);
+
+			// Check if we're on scholar detail page
+			const isScholarDetailPage = pathname.startsWith('/scholar/');
+			let endpoint: string;
+
+			if (isScholarDetailPage) {
+				// Extract scholar ID from pathname (e.g., /scholar/123 -> 123)
+				const scholarId = pathname.split('/')[2];
+				endpoint = `/student/search/${scholarId}?keyword=${encodeURIComponent(keyword)}`;
+			} else {
+				// Homepage search
+				endpoint = `/student/search?keyword=${encodeURIComponent(keyword)}`;
+			}
+
+			const response = await Axios.get<StudentResponse.search>(endpoint);
+
+			if (response.status === 200 && response.data.success) {
+				setSearchResults(response.data.data);
+			} else {
+				setSearchError(true);
+			}
+		} catch (error) {
+			console.error('Error searching students:', error);
+			setSearchError(true);
+		} finally {
+			setIsSearching(false);
+		}
+	};
+
 	// Fetch student counts for all scholars
 	const fetchStudentCounts = async () => {
 		if (!scholars) return;
@@ -114,6 +160,18 @@ const ScholarList: FC<ScholarListType> = ({ setCount }) => {
 		}
 	}, [scholars, setCount]);
 
+	useEffect(() => {
+		if (searchQuery && searchType === 'keyword') {
+			const timeoutId = setTimeout(() => {
+				searchStudents(searchQuery);
+			}, 500);
+
+			return () => clearTimeout(timeoutId);
+		} else {
+			setSearchResults([]);
+		}
+	}, [searchQuery, searchType]);
+
 	if (isLoading) {
 		return (
 			<div className='flex justify-center items-center h-40'>
@@ -144,10 +202,106 @@ const ScholarList: FC<ScholarListType> = ({ setCount }) => {
 		);
 	}
 
+	// Filter scholars by name if search type is 'name'
+	const filteredScholars = searchQuery && searchType === 'name' 
+		? scholars.filter(scholar => 
+			scholar.name.toLowerCase().includes(searchQuery.toLowerCase())
+		) 
+		: scholars;
+
+	// Show student search results if search type is 'keyword'
+	const showStudentResults = searchType === 'keyword' && searchQuery;
+
+	// Check if scholar name search has no results
+	const isScholarNameSearchWithNoResults = searchQuery && searchType === 'name' && filteredScholars.length === 0;
+
+	if (isScholarNameSearchWithNoResults) {
+		return (
+			<div className='flex flex-col items-center justify-center h-40 gap-4'>
+				<div className='text-lg text-gray-600'>ไม่พบทุนการศึกษาที่ตรงกับการค้นหา</div>
+				<button
+					onClick={onResetSearch}
+					className='px-4 py-2 bg-violet-3 text-white rounded-lg hover:bg-violet-4 transition-colors'
+				>
+					รีเซ็ตการค้นหา
+				</button>
+			</div>
+		);
+	}
+
+	if (showStudentResults) {
+		if (isSearching) {
+			return (
+				<div className='flex justify-center items-center h-40'>
+					<div className='text-lg text-gray-600'>กำลังค้นหา...</div>
+				</div>
+			);
+		}
+
+		if (searchError) {
+			return (
+				<div className='flex flex-col items-center justify-center h-40 gap-4'>
+					<div className='text-lg text-red-500'>เกิดข้อผิดพลาดในการค้นหา</div>
+					<button
+						onClick={() => searchStudents(searchQuery)}
+						className='px-4 py-2 bg-violet-3 text-white rounded-lg hover:bg-violet-4 transition-colors'
+					>
+						ลองใหม่
+					</button>
+				</div>
+			);
+		}
+
+		if (searchResults.length === 0) {
+			return (
+				<div className='flex justify-center items-center h-40'>
+					<div className='text-lg text-gray-600'>ไม่พบผลลัพธ์การค้นหา</div>
+				</div>
+			);
+		}
+
+		return (
+			<div className='w-full flex flex-col'>
+				{searchResults.map((student) => (
+					<div
+						key={student._id}
+						onClick={() => {
+							// Check if we're on homepage - if so, navigate to student form
+							if (pathname === '/') {
+								router.push(`/student/${student._id}/form`);
+							} else {
+								// On scholar detail page, navigate to scholar detail
+								const scholarId = typeof student.scholar_id === 'string' 
+									? student.scholar_id 
+									: student.scholar_id._id;
+								handleScholarCardClick(scholarId);
+							}
+						}}
+						className='w-full mt-4 bg-white h-16 grid grid-cols-3 rounded-2xl text-black text-xl text-center items-center relative cursor-pointer hover:bg-gray-50 transition-colors'
+					>
+						<div className='col-span-2 text-left ml-8'>
+							<h3 className='text-black text-base text-ellipsis overflow-hidden whitespace-nowrap'>
+								{student.fullname}
+							</h3>
+						</div>
+						<div className='col-span-1 text-center'>
+							<span className='text-black text-base'>
+								{typeof student.scholar_id === 'string' 
+									? student.scholar_id 
+									: student.scholar_id.name}
+							</span>
+						</div>
+						<div className='absolute left-2/3 top-1/2 transform -translate-x-1/2 -translate-y-1/2 w-px h-3/4 bg-softblack'></div>
+					</div>
+				))}
+			</div>
+		);
+	}
+
 	return (
 		<>
 			<div className='w-full flex flex-col'>
-				{scholars.map((scholar) => (
+				{filteredScholars.map((scholar) => (
 					<div
 						key={scholar._id}
 						onClick={(e) => {

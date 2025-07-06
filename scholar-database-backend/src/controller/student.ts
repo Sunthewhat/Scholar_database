@@ -3,6 +3,7 @@ import { StudentModel } from '@/model/student';
 import { ScholarFieldModel } from '@/model/scholarField';
 import { studentPayload } from '@/types/payload';
 import { ValidatePayload, ValidatorSchema } from '@/util/zod';
+import { z } from 'zod';
 import { ErrorResponse, FailedResponse, SuccessResponse } from '@/util/response';
 import { StorageUtil } from '@/util/storage';
 import { parseFormDataPayload } from '@/util/formData';
@@ -60,6 +61,18 @@ const extractFullname = (formData: Record<string, any>): string => {
 
 	return `${name} ${surname}`.trim();
 };
+
+// Search validation schemas
+const searchSchema = z.object({
+	keyword: z.string().min(1, 'คำค้นหาต้องมีอย่างน้อย 1 ตัวอักษร')
+});
+
+const searchByScholarSchema = z.object({
+	keyword: z.string().min(1, 'คำค้นหาต้องมีอย่างน้อย 1 ตัวอักษร'),
+	scholarId: z.string().refine((id) => mongoose.Types.ObjectId.isValid(id), {
+		message: 'รูปแบบ ID ทุนการศึกษาไม่ถูกต้อง'
+	})
+});
 
 const StudentController = {
 	create: async (c: Context) => {
@@ -506,6 +519,51 @@ const StudentController = {
 		} catch (e) {
 			console.error(e);
 
+			return c.json(...ErrorResponse(e));
+		}
+	},
+
+	searchAll: async (c: Context) => {
+		try {
+			const keyword = c.req.query('keyword');
+			
+			if (!keyword) {
+				return c.json(...FailedResponse('กรุณาใส่คำค้นหา'));
+			}
+
+			const validation = searchSchema.safeParse({ keyword });
+			if (!validation.success) {
+				return c.json(...FailedResponse(validation.error.issues[0].message));
+			}
+
+			const students = await StudentModel.search(keyword);
+			
+			return c.json(...SuccessResponse('ค้นหานักเรียนสำเร็จ', students));
+		} catch (e) {
+			console.error(e);
+			return c.json(...ErrorResponse(e));
+		}
+	},
+
+	searchByScholar: async (c: Context) => {
+		try {
+			const scholarId = c.req.param('scholarId');
+			const keyword = c.req.query('keyword');
+			
+			if (!keyword) {
+				return c.json(...FailedResponse('กรุณาใส่คำค้นหา'));
+			}
+
+			const validation = searchByScholarSchema.safeParse({ keyword, scholarId });
+			if (!validation.success) {
+				return c.json(...FailedResponse(validation.error.issues[0].message));
+			}
+
+			const students = await StudentModel.searchByScholar(scholarId, keyword);
+			
+			return c.json(...SuccessResponse('ค้นหานักเรียนสำเร็จ', students));
+		} catch (e) {
+			console.error(e);
 			return c.json(...ErrorResponse(e));
 		}
 	},
