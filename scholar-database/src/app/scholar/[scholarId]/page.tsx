@@ -259,22 +259,23 @@ const ScholarDetailPage: FC = () => {
 	}
 
 	// Filter students by name if search type is 'name'
-	const filteredStudents = searchQuery && searchType === 'name' 
-		? students.filter(student => 
-			student.fullname.toLowerCase().includes(searchQuery.toLowerCase())
-		) 
-		: students;
+	const filteredStudents =
+		searchQuery && searchType === 'name'
+			? students.filter((student) =>
+					student.fullname.toLowerCase().includes(searchQuery.toLowerCase())
+			  )
+			: students;
 
 	// Show student search results if search type is 'keyword'
 	const showStudentResults = searchType === 'keyword' && searchQuery;
-	
+
 	// Get the students to display
 	const studentsToDisplay = showStudentResults ? searchResults : filteredStudents;
 
 	return (
 		<AuthWrapper>
 			<HomeLayout onSearch={handleSearch} searchQuery={searchQuery} searchType={searchType}>
-				<div className='w-3/4 h-full flex flex-col mx-auto mt-20 overflow-scroll'>
+				<div className='w-3/4 h-full flex flex-col mx-auto mt-24 overflow-scroll'>
 					{/* Scholar Information Section */}
 					<div className='w-3/4 mb-10'>
 						<h1 className='text-3xl font-bold text-black mb-2'>{scholar.name}</h1>
@@ -354,9 +355,13 @@ const ScholarDetailPage: FC = () => {
 							<div className='flex justify-center items-center h-40'>
 								<div className='text-lg text-gray-600'>ไม่พบผลลัพธ์การค้นหา</div>
 							</div>
-						) : searchQuery && searchType === 'name' && filteredStudents.length === 0 ? (
+						) : searchQuery &&
+						  searchType === 'name' &&
+						  filteredStudents.length === 0 ? (
 							<div className='flex flex-col items-center justify-center h-40 gap-4'>
-								<div className='text-lg text-gray-600'>ไม่พบนักเรียนที่ตรงกับการค้นหา</div>
+								<div className='text-lg text-gray-600'>
+									ไม่พบนักเรียนที่ตรงกับการค้นหา
+								</div>
 								<button
 									onClick={handleResetSearch}
 									className='px-4 py-2 bg-violet-3 text-white rounded-lg hover:bg-violet-4 transition-colors'
@@ -458,10 +463,10 @@ const ScholarDetailPage: FC = () => {
 					<div className='w-full flex justify-end items-center mt-6'>
 						<p className='text-gray-600'>
 							จำนวนนักเรียนที่มีสถานะสมบูรณ์{' '}
-							{showStudentResults 
+							{showStudentResults
 								? searchResults.filter((s) => s.status === 'completed').length
-								: students.filter((s) => s.status === 'completed').length} /{' '}
-							{showStudentResults ? searchResults.length : students.length} คน
+								: students.filter((s) => s.status === 'completed').length}{' '}
+							/ {showStudentResults ? searchResults.length : students.length} คน
 						</p>
 					</div>
 				</div>

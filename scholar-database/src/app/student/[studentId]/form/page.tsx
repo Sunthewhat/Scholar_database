@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 'use client';
 import { AuthWrapper } from '@/components/authWrapper';
 import { HomeLayout } from '@/components/layouts/homeLayout';
@@ -109,7 +110,16 @@ const StudentFormPage: FC = () => {
 
 	// Check if a file is an image
 	const isImageFile = (fileName: string) => {
-		const imageExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp', '.heic', '.heif'];
+		const imageExtensions = [
+			'.png',
+			'.jpg',
+			'.jpeg',
+			'.gif',
+			'.bmp',
+			'.webp',
+			'.heic',
+			'.heif',
+		];
 		const extension = fileName.toLowerCase().substring(fileName.lastIndexOf('.'));
 		return imageExtensions.includes(extension);
 	};
@@ -615,11 +625,7 @@ const StudentFormPage: FC = () => {
 							onChange={(e) => {
 								const files = e.target.files;
 								if (files && files.length > 0) {
-									handleFieldChange(
-										field._id!,
-										question.question_id,
-										files[0]
-									);
+									handleFieldChange(field._id!, question.question_id, files[0]);
 									// Clear the input so same file can be selected again
 									e.target.value = '';
 								}
@@ -633,30 +639,32 @@ const StudentFormPage: FC = () => {
 						{questionValue && (
 							<div className='text-sm text-gray-600'>
 								<div className='bg-gray-50 p-2 rounded space-y-2'>
-									{typeof questionValue === 'string' && isImageFile(questionValue) && (
-										<div className='border border-gray-200 rounded-lg p-2 bg-white'>
-											<img
-												src={getImageUrl(questionValue)}
-												alt={questionValue.split('/').pop()}
-												className='max-w-sm max-h-48 object-contain rounded'
-												onError={(e) => {
-													e.currentTarget.style.display = 'none';
-												}}
-											/>
-										</div>
-									)}
-									{questionValue instanceof File && isImageFile(questionValue.name) && (
-										<div className='border border-gray-200 rounded-lg p-2 bg-white'>
-											<img
-												src={URL.createObjectURL(questionValue)}
-												alt={questionValue.name}
-												className='max-w-sm max-h-48 object-contain rounded'
-												onError={(e) => {
-													e.currentTarget.style.display = 'none';
-												}}
-											/>
-										</div>
-									)}
+									{typeof questionValue === 'string' &&
+										isImageFile(questionValue) && (
+											<div className='border border-gray-200 rounded-lg p-2 bg-white'>
+												<img
+													src={getImageUrl(questionValue)}
+													alt={questionValue.split('/').pop()}
+													className='max-w-sm max-h-48 object-contain rounded'
+													onError={(e) => {
+														e.currentTarget.style.display = 'none';
+													}}
+												/>
+											</div>
+										)}
+									{questionValue instanceof File &&
+										isImageFile(questionValue.name) && (
+											<div className='border border-gray-200 rounded-lg p-2 bg-white'>
+												<img
+													src={URL.createObjectURL(questionValue)}
+													alt={questionValue.name}
+													className='max-w-sm max-h-48 object-contain rounded'
+													onError={(e) => {
+														e.currentTarget.style.display = 'none';
+													}}
+												/>
+											</div>
+										)}
 									<div className='flex items-center justify-between'>
 										<button
 											type='button'
@@ -726,7 +734,7 @@ const StudentFormPage: FC = () => {
 	return (
 		<AuthWrapper>
 			<HomeLayout>
-				<div className='w-3/4 h-full flex flex-col mx-auto pt-16 mt-20'>
+				<div className='w-3/4 h-full flex flex-col mx-auto pt-16 mt-12'>
 					<div className='flex items-center justify-between mb-8'>
 						<h1 className='text-2xl font-semibold'>
 							{isEditMode ? 'กรอกข้อมูลนักเรียน' : 'ข้อมูลนักเรียน'}

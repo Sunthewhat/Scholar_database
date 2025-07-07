@@ -25,6 +25,7 @@ const TempStudentFormPage: FC = () => {
 	const [isSaving, setIsSaving] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [showSuccessModal, setShowSuccessModal] = useState(false);
+	const [showConsentModal, setShowConsentModal] = useState(false);
 	const [isTokenValid, setIsTokenValid] = useState(false);
 
 	// Verify token and load student data
@@ -156,10 +157,16 @@ const TempStudentFormPage: FC = () => {
 		return cleaned;
 	};
 
-	// Save form
+	// Show consent modal before saving
+	const handleSaveClick = () => {
+		setShowConsentModal(true);
+	};
+
+	// Save form after consent
 	const handleSaveForm = async () => {
 		try {
 			setIsSaving(true);
+			setShowConsentModal(false);
 
 			// Clean form data to remove undefined values and extract files
 			const cleanedFormData = cleanFormData(formData);
@@ -186,6 +193,10 @@ const TempStudentFormPage: FC = () => {
 		} finally {
 			setIsSaving(false);
 		}
+	};
+
+	const handleConsentCancel = () => {
+		setShowConsentModal(false);
 	};
 
 	// Render individual question
@@ -519,11 +530,7 @@ const TempStudentFormPage: FC = () => {
 							onChange={(e) => {
 								const files = e.target.files;
 								if (files && files.length > 0) {
-									handleFieldChange(
-										field._id!,
-										question.question_id,
-										files[0]
-									);
+									handleFieldChange(field._id!, question.question_id, files[0]);
 									// Clear the input so same file can be selected again
 									e.target.value = '';
 								}
@@ -538,9 +545,9 @@ const TempStudentFormPage: FC = () => {
 										{typeof questionValue === 'string'
 											? `ไฟล์ปัจจุบัน: ${questionValue.split('/').pop()}`
 											: questionValue instanceof File
-											? `ไฟล์ที่เลือก: ${
-													questionValue.name
-											  } (${Math.round(questionValue.size / 1024)} KB)`
+											? `ไฟล์ที่เลือก: ${questionValue.name} (${Math.round(
+													questionValue.size / 1024
+											  )} KB)`
 											: 'ไฟล์ที่เลือก'}
 									</span>
 									<button
@@ -652,7 +659,7 @@ const TempStudentFormPage: FC = () => {
 
 					<div className='flex justify-center gap-4 w-full mb-8'>
 						<button
-							onClick={handleSaveForm}
+							onClick={handleSaveClick}
 							disabled={isSaving}
 							className={`px-8 py-3 w-48 rounded-xl transition-colors bg-green ${
 								isSaving
@@ -664,6 +671,49 @@ const TempStudentFormPage: FC = () => {
 						</button>
 					</div>
 				</div>
+
+				{/* Consent Modal */}
+				<Modal isOpen={showConsentModal} onClose={handleConsentCancel} size='md'>
+					<div className='text-center py-6'>
+						<h2 className='text-xl font-semibold text-black mb-4'>
+							ยินยอมการเก็บรักษาข้อมูล
+						</h2>
+						<div className='text-left text-gray-700 mb-6 space-y-3'>
+							<p>
+								เพื่อการประมวลผลข้อมูลทุนการศึกษา
+								ทางเราจำเป็นต้องเก็บรักษาข้อมูลส่วนบุคคลของท่าน ซึ่งรวมถึง:
+							</p>
+							<ul className='list-disc pl-6 space-y-1'>
+								<li>ข้อมูลส่วนตัว เช่น ชื่อ-นามสกุล ที่อยู่ เบอร์โทรศัพท์</li>
+								<li>ข้อมูลการศึกษาและผลการเรียน</li>
+								<li>เอกสารและไฟล์ที่ท่านอัปโหลด</li>
+								<li>ข้อมูลอื่นๆ ที่ท่านให้ไว้ในแบบฟอร์มนี้</li>
+							</ul>
+							<p>
+								ข้อมูลของท่านจะถูกเก็บรักษาอย่างปลอดภัยและใช้เพื่อวัตถุประสงค์ในการประมวลผลทุนการศึกษาเท่านั้น
+							</p>
+						</div>
+						<div className='flex gap-4 justify-center'>
+							<button
+								onClick={handleConsentCancel}
+								className='px-6 py-2 bg-grey text-white rounded-lg hover:bg-gray-600 transition-colors'
+							>
+								ไม่ยินยอม
+							</button>
+							<button
+								onClick={handleSaveForm}
+								disabled={isSaving}
+								className={`px-6 py-2 rounded-lg transition-colors ${
+									isSaving
+										? 'bg-gray-400 cursor-not-allowed text-white'
+										: 'bg-green text-white hover:bg-green-600'
+								}`}
+							>
+								{isSaving ? 'กำลังบันทึก...' : 'ยินยอมและบันทึกข้อมูล'}
+							</button>
+						</div>
+					</div>
+				</Modal>
 
 				{/* Success Modal */}
 				<Modal
