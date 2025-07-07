@@ -11,9 +11,12 @@ import * as mongoose from 'mongoose';
 import * as jwt from 'hono/jwt';
 
 // Deep merge utility function
-const deepMerge = (target: Record<string, any>, source: Record<string, any>): Record<string, any> => {
+const deepMerge = (
+	target: Record<string, any>,
+	source: Record<string, any>
+): Record<string, any> => {
 	const result = { ...target };
-	
+
 	for (const key in source) {
 		if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
 			if (target[key] && typeof target[key] === 'object' && !Array.isArray(target[key])) {
@@ -25,7 +28,7 @@ const deepMerge = (target: Record<string, any>, source: Record<string, any>): Re
 			result[key] = source[key];
 		}
 	}
-	
+
 	return result;
 };
 
@@ -64,14 +67,14 @@ const extractFullname = (formData: Record<string, any>): string => {
 
 // Search validation schemas
 const searchSchema = z.object({
-	keyword: z.string().min(1, 'คำค้นหาต้องมีอย่างน้อย 1 ตัวอักษร')
+	keyword: z.string().min(1, 'คำค้นหาต้องมีอย่างน้อย 1 ตัวอักษร'),
 });
 
 const searchByScholarSchema = z.object({
 	keyword: z.string().min(1, 'คำค้นหาต้องมีอย่างน้อย 1 ตัวอักษร'),
 	scholarId: z.string().refine((id) => mongoose.Types.ObjectId.isValid(id), {
-		message: 'รูปแบบ ID ทุนการศึกษาไม่ถูกต้อง'
-	})
+		message: 'รูปแบบ ID ทุนการศึกษาไม่ถูกต้อง',
+	}),
 });
 
 const StudentController = {
@@ -93,6 +96,7 @@ const StudentController = {
 					const fileData = await StorageUtil.processFormDataFiles(formData);
 					processedFormData = { ...processedFormData, ...fileData };
 				} catch (storageError) {
+					console.error('Storage Error' + storageError);
 					return c.json(...ErrorResponse(storageError));
 				}
 			}
@@ -215,7 +219,7 @@ const StudentController = {
 				if (hasFormDataFiles) {
 					try {
 						const fileData = await StorageUtil.processFormDataFiles(formData);
-						
+
 						// Deep merge to preserve nested object properties
 						processedFormData = deepMerge(processedFormData, fileData);
 
@@ -370,6 +374,7 @@ const StudentController = {
 
 					await StorageUtil.cleanupOldFiles(existingStudent.form_data, processedFormData);
 				} catch (storageError) {
+					console.error('Storage Error' + storageError);
 					return c.json(...ErrorResponse(storageError));
 				}
 			}
@@ -526,7 +531,7 @@ const StudentController = {
 	searchAll: async (c: Context) => {
 		try {
 			const keyword = c.req.query('keyword');
-			
+
 			if (!keyword) {
 				return c.json(...FailedResponse('กรุณาใส่คำค้นหา'));
 			}
@@ -537,7 +542,7 @@ const StudentController = {
 			}
 
 			const students = await StudentModel.search(keyword);
-			
+
 			return c.json(...SuccessResponse('ค้นหานักเรียนสำเร็จ', students));
 		} catch (e) {
 			console.error(e);
@@ -549,7 +554,7 @@ const StudentController = {
 		try {
 			const scholarId = c.req.param('scholarId');
 			const keyword = c.req.query('keyword');
-			
+
 			if (!keyword) {
 				return c.json(...FailedResponse('กรุณาใส่คำค้นหา'));
 			}
@@ -560,7 +565,7 @@ const StudentController = {
 			}
 
 			const students = await StudentModel.searchByScholar(scholarId, keyword);
-			
+
 			return c.json(...SuccessResponse('ค้นหานักเรียนสำเร็จ', students));
 		} catch (e) {
 			console.error(e);

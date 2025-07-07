@@ -36,6 +36,7 @@ export const StorageUtil = {
 			const result = await response.json();
 			return result;
 		} catch (error) {
+			console.error('Storage Upload Error' + error);
 			return {
 				success: false,
 				msg: error instanceof Error ? error.message : 'Failed to upload file',
@@ -56,6 +57,7 @@ export const StorageUtil = {
 			const result = await response.json();
 			return result;
 		} catch (error) {
+			console.error('Storage Delete Error' + error);
 			return {
 				success: false,
 				msg: error instanceof Error ? error.message : 'Failed to delete file',

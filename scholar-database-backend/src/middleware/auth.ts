@@ -44,6 +44,7 @@ export const authMiddleware = async (c: Context, next: Next) => {
 
 		await next();
 	} catch (e) {
+		console.error(e);
 		return c.json(...ErrorResponse(e));
 	}
 };
