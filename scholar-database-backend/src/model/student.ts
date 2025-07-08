@@ -281,6 +281,174 @@ const StudentModel = {
 		
 		return matchingStudents;
 	},
+
+	generateCSVData: async (scholarId: string) => {
+		// Get all students for the scholar with populated data
+		const students = await StudentModel.getByScholar(scholarId);
+		
+		if (students.length === 0) {
+			return { headers: [], rows: [] };
+		}
+
+		// Get scholar fields to map question IDs to labels
+		const { ScholarFieldModel } = await import('@/model/scholarField');
+		const scholarFields = await ScholarFieldModel.getByScholarId(scholarId);
+		
+		// Create question ID to label mapping
+		const questionIdToLabel = new Map<string, string>();
+		scholarFields.forEach((field: any) => {
+			if (field.questions && Array.isArray(field.questions)) {
+				field.questions.forEach((question: any) => {
+					if (question.question_id && question.question_label) {
+						questionIdToLabel.set(question.question_id, question.question_label);
+					}
+				});
+			}
+		});
+
+		// Extract all possible form field keys from all students (excluding file fields)
+		const allFormKeys = new Set<string>();
+		students.forEach(student => {
+			if (student.form_data) {
+				Object.values(student.form_data).forEach((fieldData: any) => {
+					if (fieldData && typeof fieldData === 'object') {
+						Object.keys(fieldData).forEach(key => {
+							// Skip file fields (they typically contain URLs or file objects)
+							if (fieldData[key] && typeof fieldData[key] === 'string' && 
+								fieldData[key].includes('/storage/')) {
+								return; // Skip file URLs
+							}
+							if (fieldData[key] && typeof fieldData[key] === 'object' && 
+								fieldData[key].filename) {
+								return; // Skip file objects
+							}
+							// Skip special keys like 'initialized' and '_other' fields
+							if (key === 'initialized' || key.endsWith('_other')) {
+								return;
+							}
+							allFormKeys.add(key);
+						});
+					}
+				});
+			}
+		});
+
+		// Create CSV headers using question labels instead of IDs
+		const questionHeaders = Array.from(allFormKeys)
+			.sort()
+			.map(questionId => questionIdToLabel.get(questionId) || questionId);
+
+		const headers = [
+			'ID',
+			'Full Name',
+			'Status',
+			'Created At',
+			'Updated At',
+			'Submitted At',
+			'Scholar Name',
+			...questionHeaders
+		];
+
+		// Create CSV rows
+		const rows = students.map(student => {
+			const row: any[] = [
+				student._id,
+				student.fullname || '',
+				student.status,
+				student.created_at,
+				student.updated_at,
+				student.submitted_at || '',
+(student.scholar_id as any)?.name || ''
+			];
+
+			// Add form data values in the same order as headers (excluding file fields)
+			Array.from(allFormKeys).sort().forEach(key => {
+				let value = '';
+				if (student.form_data) {
+					// Search through all field data for this key
+					Object.values(student.form_data).forEach((fieldData: any) => {
+						if (fieldData && typeof fieldData === 'object' && fieldData[key]) {
+							// Skip file fields
+							if (typeof fieldData[key] === 'string' && fieldData[key].includes('/storage/')) {
+								return; // Skip file URLs
+							}
+							if (typeof fieldData[key] === 'object' && fieldData[key].filename) {
+								return; // Skip file objects
+							}
+							
+							if (Array.isArray(fieldData[key])) {
+								// Handle arrays (checkboxes with potential 'other' option)
+								const filteredArray = fieldData[key].filter((item: any) => {
+									if (typeof item === 'string' && item.includes('/storage/')) {
+										return false;
+									}
+									if (typeof item === 'object' && item.filename) {
+										return false;
+									}
+									return true;
+								});
+								
+								// Check if 'other' is selected and replace with custom text
+								if (filteredArray.includes('other')) {
+									const otherValue = fieldData[`${key}_other`];
+									if (otherValue) {
+										// Replace 'other' with the custom text
+										const updatedArray = filteredArray.map((item: any) => 
+											item === 'other' ? otherValue : item
+										);
+										value = updatedArray.join(', ');
+									} else {
+										value = filteredArray.join(', ');
+									}
+								} else {
+									value = filteredArray.join(', ');
+								}
+							} else {
+								// Handle single values (radio buttons, dropdowns)
+								if (fieldData[key] === 'other') {
+									// Check for the corresponding 'other' text field
+									const otherValue = fieldData[`${key}_other`];
+									value = otherValue ? String(otherValue) : 'other';
+								} else {
+									value = String(fieldData[key]);
+								}
+							}
+						}
+					});
+				}
+				row.push(value);
+			});
+
+			return row;
+		});
+
+		return { headers, rows };
+	},
+
+	convertToCSVString: (headers: string[], rows: any[][]): string => {
+		// Helper function to escape CSV values
+		const escapeCSVValue = (value: any): string => {
+			const str = String(value || '');
+			// If value contains comma, quote, or newline, wrap in quotes and escape quotes
+			if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+				return `"${str.replace(/"/g, '""')}"`;
+			}
+			return str;
+		};
+
+		// Create CSV content
+		const csvLines = [];
+		
+		// Add headers
+		csvLines.push(headers.map(escapeCSVValue).join(','));
+		
+		// Add data rows
+		rows.forEach(row => {
+			csvLines.push(row.map(escapeCSVValue).join(','));
+		});
+
+		return csvLines.join('\n');
+	},
 };
 
 export { StudentModel };

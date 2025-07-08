@@ -6,6 +6,12 @@ import { StorageUtil } from '@/util/storage';
 import { scholarPayload } from '@/types/payload';
 import { ValidatePayload, ValidatorSchema } from '@/util/zod';
 import { ErrorResponse, FailedResponse, SuccessResponse } from '@/util/response';
+import * as mongoose from 'mongoose';
+
+// Helper function to validate ObjectId
+const isValidObjectId = (id: string): boolean => {
+	return mongoose.Types.ObjectId.isValid(id);
+};
 
 const ScholarController = {
 	create: async (c: Context) => {
@@ -161,6 +167,46 @@ const ScholarController = {
 		} catch (e) {
 			console.error(e);
 
+			return c.json(...ErrorResponse(e));
+		}
+	},
+
+	generateCSV: async (c: Context) => {
+		try {
+			const id = c.req.param('id');
+
+			if (!id) return c.json(...FailedResponse('ไม่พบ ID ทุนการศึกษา'));
+			if (!isValidObjectId(id))
+				return c.json(...FailedResponse('รูปแบบ ID ทุนการศึกษาไม่ถูกต้อง'));
+
+			// Check if scholar exists
+			const scholar = await ScholarModel.getById(id);
+			if (!scholar) return c.json(...FailedResponse('ไม่พบทุนการศึกษา', 404));
+
+			const { headers, rows } = await StudentModel.generateCSVData(id);
+			
+			if (headers.length === 0) {
+				return c.json(...FailedResponse('ไม่พบข้อมูลนักเรียนในทุนการศึกษานี้'));
+			}
+
+			const csvContent = StudentModel.convertToCSVString(headers, rows);
+			
+			// Create safe filename (remove non-ASCII characters and replace spaces)
+			const safeScholarName = scholar.name
+				.replace(/[^\x00-\x7F]/g, '') // Remove non-ASCII characters
+				.replace(/\s+/g, '_') // Replace spaces with underscores
+				.replace(/[^a-zA-Z0-9_-]/g, '') // Remove special characters except underscore and dash
+				|| 'scholar'; // Fallback if name becomes empty
+			
+			const filename = `students_${safeScholarName}_${id}.csv`;
+			
+			// Set headers for CSV download
+			c.header('Content-Type', 'text/csv; charset=utf-8');
+			c.header('Content-Disposition', `attachment; filename="${filename}"`);
+			
+			return c.text(csvContent);
+		} catch (e) {
+			console.error(e);
 			return c.json(...ErrorResponse(e));
 		}
 	},

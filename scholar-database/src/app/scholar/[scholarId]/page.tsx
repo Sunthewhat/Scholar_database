@@ -51,6 +51,7 @@ const ScholarDetailPage: FC = () => {
 	const [generatedLink, setGeneratedLink] = useState<string>('');
 	const [isGeneratingLink, setIsGeneratingLink] = useState(false);
 	const [linkExpiration, setLinkExpiration] = useState<string>('');
+	const [isDownloadingCsv, setIsDownloadingCsv] = useState(false);
 
 	// Fetch students for this scholar
 	useEffect(() => {
@@ -181,6 +182,38 @@ const ScholarDetailPage: FC = () => {
 		router.push(`/student/${studentId}/form`);
 	};
 
+	const handleDownloadCsv = async () => {
+		try {
+			setIsDownloadingCsv(true);
+			const response = await Axios.get(`/scholar/csv/${scholarId}`, {
+				responseType: 'text',
+			});
+
+			if (response.status === 200) {
+				// Create blob and download
+				const blob = new Blob([response.data], { type: 'text/csv;charset=utf-8;' });
+				const link = document.createElement('a');
+				const url = URL.createObjectURL(blob);
+
+				link.href = url;
+				link.download = `${scholar?.name || 'scholar'}_data.csv`;
+				link.style.visibility = 'hidden';
+
+				document.body.appendChild(link);
+				link.click();
+				document.body.removeChild(link);
+				URL.revokeObjectURL(url);
+			} else {
+				setError('เกิดข้อผิดพลาดในการดาวน์โหลดไฟล์ CSV');
+			}
+		} catch (err: any) {
+			console.error('Error downloading CSV:', err);
+			setError(err.response?.data?.msg || 'เกิดข้อผิดพลาดในการดาวน์โหลดไฟล์ CSV');
+		} finally {
+			setIsDownloadingCsv(false);
+		}
+	};
+
 	const searchStudents = async (keyword: string) => {
 		if (!keyword.trim()) {
 			setSearchResults([]);
@@ -296,6 +329,22 @@ const ScholarDetailPage: FC = () => {
 					</div>
 
 					<div className='flex items-center justify-end gap-5 mb-8'>
+						<button
+							className='flex gap-2 items-center bg-violet-3 text-white px-4 py-2 rounded-xl hover:bg-blue-600'
+							onClick={handleDownloadCsv}
+							disabled={isDownloadingCsv}
+						>
+							<Image
+								src='/assets/download.svg'
+								alt='download'
+								height={16}
+								width={16}
+								style={{ width: 'auto', height: 'auto' }}
+							/>
+							<h1 className='text-base font-semibold'>
+								{isDownloadingCsv ? 'กำลังดาวน์โหลด...' : 'ดาวน์โหลด CSV'}
+							</h1>
+						</button>
 						<Link href={`/form/edit/${scholarId}`}>
 							<button className='flex gap-2 items-center bg-violet-3 text-white px-4 py-2 rounded-xl hover:bg-blue-600'>
 								<Image

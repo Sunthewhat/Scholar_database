@@ -13,6 +13,9 @@ ScholarRouter.get('/', ScholarController.getAll);
 // GET /scholar/active - Get active scholars
 ScholarRouter.get('/active', ScholarController.getActive);
 
+// GET /scholar/csv/:id - Generate CSV export for students by scholar ID
+ScholarRouter.get('/csv/:id', ScholarController.generateCSV);
+
 // GET /scholar/:id - Get scholar by ID
 ScholarRouter.get('/:id', ScholarController.getById);
 
