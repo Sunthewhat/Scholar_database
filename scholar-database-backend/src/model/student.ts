@@ -202,143 +202,84 @@ const StudentModel = {
 		}
 	},
 
-	search: async (keyword: string) => {
-		const searchRegex = new RegExp(keyword, 'i');
+	// Helper function to recursively search through form_data
+	searchInFormData: (obj: any, keyword: string): boolean => {
+		if (!obj || typeof obj !== 'object') {
+			return String(obj || '').toLowerCase().includes(keyword.toLowerCase());
+		}
 
-		return await Student.aggregate([
-			{
-				$match: {
-					$or: [
-						{ fullname: { $regex: searchRegex } },
-						{
-							$expr: {
-								$gt: [
-									{
-										$size: {
-											$filter: {
-												input: { $objectToArray: '$form_data' },
-												as: 'field',
-												cond: {
-													$and: [
-														{ $eq: [{ $type: '$$field.v' }, 'object'] },
-														{ $ne: [{ $type: '$$field.v' }, 'array'] },
-														{
-															$gt: [
-																{
-																	$size: {
-																		$filter: {
-																			input: { $objectToArray: '$$field.v' },
-																			as: 'question',
-																			cond: {
-																				$regexMatch: {
-																					input: { $toString: '$$question.v' },
-																					regex: keyword,
-																					options: 'i'
-																				}
-																			}
-																		}
-																	}
-																},
-																0
-															]
-														}
-													]
-												}
-											}
-										}
-									},
-									0
-								]
-							}
-						}
-					]
-				}
-			},
-			{
-				$lookup: {
-					from: 'scholars',
-					localField: 'scholar_id',
-					foreignField: '_id',
-					as: 'scholar_id'
-				}
-			},
-			{
-				$unwind: {
-					path: '$scholar_id',
-					preserveNullAndEmptyArrays: true
+		for (const key in obj) {
+			const value = obj[key];
+			
+			// Search in the key itself
+			if (key.toLowerCase().includes(keyword.toLowerCase())) {
+				return true;
+			}
+			
+			// Search in primitive values
+			if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+				if (String(value).toLowerCase().includes(keyword.toLowerCase())) {
+					return true;
 				}
 			}
-		]);
+			
+			// Search in arrays
+			if (Array.isArray(value)) {
+				for (const item of value) {
+					if (StudentModel.searchInFormData(item, keyword)) {
+						return true;
+					}
+				}
+			}
+			
+			// Search in nested objects
+			if (value && typeof value === 'object') {
+				if (StudentModel.searchInFormData(value, keyword)) {
+					return true;
+				}
+			}
+		}
+		
+		return false;
+	},
+
+	// Helper function to check if student matches keyword
+	matchesKeyword: (student: any, keyword: string): boolean => {
+		// Search in fullname
+		if (student.fullname && student.fullname.toLowerCase().includes(keyword.toLowerCase())) {
+			return true;
+		}
+		
+		// Search in form_data
+		if (student.form_data && StudentModel.searchInFormData(student.form_data, keyword)) {
+			return true;
+		}
+		
+		return false;
+	},
+
+	search: async (keyword: string) => {
+		// Get all students with populated scholar data
+		const allStudents = await StudentModel.getAll();
+		
+		// Filter students that match the keyword
+		const matchingStudents = allStudents.filter(student => 
+			StudentModel.matchesKeyword(student, keyword)
+		);
+		
+		return matchingStudents;
 	},
 
 	searchByScholar: async (scholarId: string, keyword: string) => {
-		const searchRegex = new RegExp(keyword, 'i');
-
-		return await Student.aggregate([
-			{
-				$match: {
-					scholar_id: new mongoose.Types.ObjectId(scholarId),
-					$or: [
-						{ fullname: { $regex: searchRegex } },
-						{
-							$expr: {
-								$gt: [
-									{
-										$size: {
-											$filter: {
-												input: { $objectToArray: '$form_data' },
-												as: 'field',
-												cond: {
-													$and: [
-														{ $eq: [{ $type: '$$field.v' }, 'object'] },
-														{ $ne: [{ $type: '$$field.v' }, 'array'] },
-														{
-															$gt: [
-																{
-																	$size: {
-																		$filter: {
-																			input: { $objectToArray: '$$field.v' },
-																			as: 'question',
-																			cond: {
-																				$regexMatch: {
-																					input: { $toString: '$$question.v' },
-																					regex: keyword,
-																					options: 'i'
-																				}
-																			}
-																		}
-																	}
-																},
-																0
-															]
-														}
-													]
-												}
-											}
-										}
-									},
-									0
-								]
-							}
-						}
-					]
-				}
-			},
-			{
-				$lookup: {
-					from: 'scholars',
-					localField: 'scholar_id',
-					foreignField: '_id',
-					as: 'scholar_id'
-				}
-			},
-			{
-				$unwind: {
-					path: '$scholar_id',
-					preserveNullAndEmptyArrays: true
-				}
-			}
-		]);
+		// Get all students for the specific scholar with populated scholar data
+		const scholarStudents = await StudentModel.getByScholar(scholarId);
+		
+		// Filter students that match the keyword
+		const matchingStudents = scholarStudents.filter(student => 
+			StudentModel.matchesKeyword(student, keyword)
+		);
+		
+		return matchingStudents;
 	},
 };
 
