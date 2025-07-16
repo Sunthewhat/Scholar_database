@@ -115,7 +115,7 @@ const AdminPage: FC = () => {
 							</button>
 						)}
 					</div>
-					<div className='flex flex-col max-h-[70dvh] overflow-scroll w-full mt-8'>
+					<div className='flex flex-col max-h-[70dvh] overflow-scroll w-full mt-8 scrollbar-hide'>
 						<div className='w-full bg-violet-2 h-16 min-h-16 grid grid-cols-3 rounded-2xl text-white text-xl text-center items-center relative'>
 							<h1 className='col-span-2'>ชื่อผู้ใช้</h1>
 							<h1 className='col-span-1'>สิทธิ์</h1>

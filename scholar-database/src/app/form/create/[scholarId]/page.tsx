@@ -414,7 +414,7 @@ const CreateFormPage: FC = () => {
 							<h1>ดูตัวอย่างฟอร์ม</h1>
 						</button>
 					</div>
-					<div className='h-2/3 overflow-y-scroll rounded-lg bg-gray-50 mt-5 mb-5'>
+					<div className='h-2/3 overflow-y-scroll rounded-lg bg-gray-50 mt-5 mb-5 scrollbar-hide'>
 						{sections.length === 0 ? (
 							<div className='flex items-center justify-center h-full text-gray-500'>
 								<p>ยังไม่มีหัวข้อ กดปุ่ม &quot;เพิ่มหัวข้อ&quot; เพื่อเริ่มต้น</p>

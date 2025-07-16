@@ -463,7 +463,7 @@ export const QuestionPreview: FC<QuestionPreviewProps> = ({
 							</div>
 						)}
 
-						<div className='overflow-x-auto'>
+						<div className='overflow-x-auto scrollbar-hide'>
 							<table className='w-full border-collapse border border-gray-300'>
 								{Array.from({ length: rows }).map((_, rowIndex) => (
 									<tr key={rowIndex}>

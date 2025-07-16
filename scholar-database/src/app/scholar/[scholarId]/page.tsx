@@ -190,8 +190,8 @@ const ScholarDetailPage: FC = () => {
 			});
 
 			if (response.status === 200) {
-				// Create blob and download
-				const blob = new Blob([response.data], { type: 'text/csv;charset=utf-8;' });
+				// Create blob and download with UTF-8 BOM for proper Thai character encoding
+				const blob = new Blob(['\uFEFF' + response.data], { type: 'text/csv;charset=utf-8;' });
 				const link = document.createElement('a');
 				const url = URL.createObjectURL(blob);
 
@@ -308,7 +308,7 @@ const ScholarDetailPage: FC = () => {
 	return (
 		<AuthWrapper>
 			<HomeLayout onSearch={handleSearch} searchQuery={searchQuery} searchType={searchType}>
-				<div className='w-3/4 h-full flex flex-col mx-auto mt-24 overflow-scroll'>
+				<div className='w-3/4 h-full flex flex-col mx-auto mt-24 overflow-scroll scrollbar-hide'>
 					{/* Scholar Information Section */}
 					<div className='w-3/4 mb-10'>
 						<h1 className='text-3xl font-bold text-black mb-2'>{scholar.name}</h1>
@@ -384,7 +384,7 @@ const ScholarDetailPage: FC = () => {
 						</div>
 					)}
 
-					<div className='flex flex-col max-h-[70dvh] overflow-y-auto w-full'>
+					<div className='flex flex-col max-h-[70dvh] overflow-y-auto w-full scrollbar-hide'>
 						{/* Show search loading state */}
 						{showStudentResults && isSearching ? (
 							<div className='flex justify-center items-center h-40'>

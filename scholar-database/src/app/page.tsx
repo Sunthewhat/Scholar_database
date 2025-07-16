@@ -45,7 +45,7 @@ const HomePage: FC = () => {
 							</button>
 						</Link>
 					</div>
-					<div className='flex flex-col max-h-[65dvh] overflow-scroll w-full mt-8'>
+					<div className='flex flex-col max-h-[65dvh] overflow-scroll w-full mt-8 scrollbar-hide'>
 						<div className='w-full bg-violet-2 h-16 min-h-16 grid grid-cols-3 rounded-2xl text-white text-xl text-center items-center relative'>
 							<h1 className='col-span-2'>
 								{isSearchingStudents ? 'ชื่อนักเรียน' : 'รายการทุน'}

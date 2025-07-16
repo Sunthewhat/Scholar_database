@@ -64,7 +64,7 @@ const Modal: FC<ModalProps> = ({ isOpen, onClose, children, size = 'md' }) => {
 				className={`relative bg-white rounded-2xl shadow-xl ${getSizeClasses()} w-full mx-4 max-h-[90vh] overflow-hidden`}
 				style={{ zIndex: 99999 }}
 			>
-				<div className='px-6 py-4 overflow-y-auto max-h-[calc(90vh-80px)]'>{children}</div>
+				<div className='px-6 py-4 overflow-y-auto max-h-[calc(90vh-80px)] scrollbar-hide'>{children}</div>
 			</div>
 		</div>
 	);

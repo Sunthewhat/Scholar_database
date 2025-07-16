@@ -530,7 +530,7 @@ const StudentFormPage: FC = () => {
 				const tableData = questionValue || {};
 
 				return (
-					<div className='overflow-x-auto'>
+					<div className='overflow-x-auto scrollbar-hide'>
 						<table className='w-full border border-gray-300'>
 							<tbody>
 								{Array.from({ length: tableConfig.rows }).map((_, rowIndex) => (
@@ -747,7 +747,7 @@ const StudentFormPage: FC = () => {
 						</div>
 					)}
 
-					<div className='overflow-y-auto h-fit max-h-[65dvh] space-y-6 mb-6'>
+					<div className='overflow-y-auto h-fit max-h-[65dvh] space-y-6 mb-6 scrollbar-hide'>
 						{scholarFields.map((field) => (
 							<div
 								key={field._id}
