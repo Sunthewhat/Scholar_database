@@ -11,7 +11,11 @@ type NavBarProps = {
 	searchType?: 'name' | 'keyword';
 };
 
-const NavBar: FC<NavBarProps> = ({ onSearch, searchQuery: externalSearchQuery, searchType: externalSearchType }) => {
+const NavBar: FC<NavBarProps> = ({
+	onSearch,
+	searchQuery: externalSearchQuery,
+	searchType: externalSearchType,
+}) => {
 	const [userName, setUserName] = useState<string>('');
 	const [userRole, setUserRole] = useState<string>('');
 	const [searchType, setSearchType] = useState<'name' | 'keyword'>('name');
@@ -38,18 +42,24 @@ const NavBar: FC<NavBarProps> = ({ onSearch, searchQuery: externalSearchQuery, s
 
 	const isShowSearch = () => {
 		return path === '/' || path.startsWith('/scholar');
-	}
+	};
 
 	const getSearchLabels = () => {
+		if (path.includes('/analytics')) {
+			return {
+				name: 'ค้นหาจากชื่อคำถาม',
+				keyword: 'กรองตามประเภทคำถาม',
+			};
+		}
 		if (path.startsWith('/scholar/')) {
 			return {
-				name: 'ค้นหาจากชื่อ',
-				keyword: 'ค้นหาจากคำที่เกี่ยวข้อง'
+				name: 'ค้นหาจากชื่อนักศึกษา',
+				keyword: 'ค้นหาจากข้อมูลนักศึกษา',
 			};
 		}
 		return {
-			name: 'ค้นหาจากชื่อทุน',
-			keyword: 'ค้นหาจากคำที่เกี่ยวข้อง'
+			name: 'ค้นหาจากชื่อทุนและคำอธิบายทุน',
+			keyword: 'ค้นหาจากข้อมูลนักศึกษา',
 		};
 	};
 
@@ -123,23 +133,66 @@ const NavBar: FC<NavBarProps> = ({ onSearch, searchQuery: externalSearchQuery, s
 			/>
 			{isShowSearch() && (
 				<div className='flex items-center gap-4 w-[80%]'>
-					<form onSubmit={handleSearch} className='relative flex items-center w-[80%]'>
-						<input
-							className='w-full px-4 py-2 pr-10 rounded-full shadow-md'
-							placeholder='ค้นหา...'
-							value={searchQuery}
-							onChange={handleSearchInputChange}
-						/>
-						<button type='submit' className='absolute right-3 w-5 h-5 cursor-pointer'>
-							<Image
-								src='/assets/search.svg'
-								alt='search'
-								className='w-5 h-5'
-								width={16}
-								height={16}
+					{path.includes('/analytics') && searchType === 'keyword' ? (
+						// Dropdown for question types in analytics
+						<div className='relative flex items-center w-[80%]'>
+							<select
+								className='w-full px-4 py-2 pr-10 rounded-full shadow-md appearance-none bg-white'
+								value={searchQuery}
+								onChange={(e) => {
+									setSearchQuery(e.target.value);
+									if (onSearch) {
+										onSearch(e.target.value, searchType);
+									}
+								}}
+							>
+								<option value=''>ทุกประเภทคำถาม</option>
+								<option value='short_answer'>คำตอบสั้น</option>
+								<option value='long_answer'>คำตอบยาว</option>
+								<option value='radio'>ตัวเลือกเดียว</option>
+								<option value='checkbox'>ตัวเลือกหลายข้อ</option>
+								<option value='dropdown'>เมนูแบบเลื่อนลง</option>
+								<option value='table'>ตาราง</option>
+								<option value='date'>วันที่</option>
+								<option value='time'>เวลา</option>
+								<option value='file_upload'>อัปโหลดไฟล์</option>
+							</select>
+							<div className='absolute right-3 w-5 h-5 pointer-events-none'>
+								<svg
+									className='w-5 h-5 text-gray-400'
+									fill='none'
+									stroke='currentColor'
+									viewBox='0 0 24 24'
+								>
+									<path
+										strokeLinecap='round'
+										strokeLinejoin='round'
+										strokeWidth={2}
+										d='M19 9l-7 7-7-7'
+									/>
+								</svg>
+							</div>
+						</div>
+					) : (
+						// Regular text input for other search types
+						<form onSubmit={handleSearch} className='relative flex items-center w-[80%]'>
+							<input
+								className='w-full px-4 py-2 pr-10 rounded-full shadow-md'
+								placeholder='ค้นหา...'
+								value={searchQuery}
+								onChange={handleSearchInputChange}
 							/>
-						</button>
-					</form>
+							<button type='submit' className='absolute right-3 w-5 h-5 cursor-pointer'>
+								<Image
+									src='/assets/search.svg'
+									alt='search'
+									className='w-5 h-5'
+									width={16}
+									height={16}
+								/>
+							</button>
+						</form>
+					)}
 					<div className='flex gap-1 flex-col w-[20%] text-violet-3'>
 						<label className='flex items-center gap-2 cursor-pointer'>
 							<input

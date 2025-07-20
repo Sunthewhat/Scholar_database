@@ -191,7 +191,9 @@ const ScholarDetailPage: FC = () => {
 
 			if (response.status === 200) {
 				// Create blob and download with UTF-8 BOM for proper Thai character encoding
-				const blob = new Blob(['\uFEFF' + response.data], { type: 'text/csv;charset=utf-8;' });
+				const blob = new Blob(['\uFEFF' + response.data], {
+					type: 'text/csv;charset=utf-8;',
+				});
 				const link = document.createElement('a');
 				const url = URL.createObjectURL(blob);
 
@@ -329,6 +331,16 @@ const ScholarDetailPage: FC = () => {
 					</div>
 
 					<div className='flex items-center justify-end gap-5 mb-8'>
+						<Link href={`/scholar/${scholarId}/analytics`}>
+							<button className='flex gap-2 items-center bg-violet-3 text-white px-4 py-2 rounded-xl hover:bg-blue-600'>
+								<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+								</svg>
+								<h1 className='text-base font-semibold'>
+									การวิเคราะห์ข้อมูล
+								</h1>
+							</button>
+						</Link>
 						<button
 							className='flex gap-2 items-center bg-violet-3 text-white px-4 py-2 rounded-xl hover:bg-blue-600'
 							onClick={handleDownloadCsv}
@@ -428,7 +440,7 @@ const ScholarDetailPage: FC = () => {
 							<div className=''>
 								<div className='w-full bg-violet-2 h-16 min-h-16 grid grid-cols-3 rounded-2xl text-white text-xl text-center items-center relative'>
 									<h1 className='col-span-2'>รายชื่อนักเรียน</h1>
-									<h1 className='col-span-1'>สถานะ</h1>
+									<h1 className='col-span-1'>สถานะข้อมูล</h1>
 									<div className='absolute left-2/3 top-1/2 transform -translate-x-1/2 -translate-y-1/2 w-px h-3/4 bg-violet-3'></div>
 								</div>
 								{studentsToDisplay.map((student, index) => {

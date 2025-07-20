@@ -202,10 +202,11 @@ const ScholarList: FC<ScholarListType> = ({ setCount, searchQuery, searchType, o
 		);
 	}
 
-	// Filter scholars by name if search type is 'name'
+	// Filter scholars by name and description if search type is 'name'
 	const filteredScholars = searchQuery && searchType === 'name' 
 		? scholars.filter(scholar => 
-			scholar.name.toLowerCase().includes(searchQuery.toLowerCase())
+			scholar.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+			(scholar.description && scholar.description.toLowerCase().includes(searchQuery.toLowerCase()))
 		) 
 		: scholars;
 

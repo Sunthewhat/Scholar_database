@@ -620,23 +620,22 @@ const StudentFormPage: FC = () => {
 			case 'file_upload':
 				return (
 					<div className='space-y-2'>
-						<input
-							type='file'
-							onChange={(e) => {
-								const files = e.target.files;
-								if (files && files.length > 0) {
-									handleFieldChange(field._id!, question.question_id, files[0]);
-									// Clear the input so same file can be selected again
-									e.target.value = '';
-								}
-							}}
-							accept={question.file_types ? question.file_types.join(',') : undefined}
-							className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 ${
-								!isEditMode ? 'cursor-not-allowed bg-gray-50' : ''
-							}`}
-							disabled={!isEditMode}
-						/>
-						{questionValue && (
+						{isEditMode && (
+							<input
+								type='file'
+								onChange={(e) => {
+									const files = e.target.files;
+									if (files && files.length > 0) {
+										handleFieldChange(field._id!, question.question_id, files[0]);
+										// Clear the input so same file can be selected again
+										e.target.value = '';
+									}
+								}}
+								accept={question.file_types ? question.file_types.join(',') : undefined}
+								className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100'
+							/>
+						)}
+						{questionValue ? (
 							<div className='text-sm text-gray-600'>
 								<div className='bg-gray-50 p-2 rounded space-y-2'>
 									{typeof questionValue === 'string' &&
@@ -679,25 +678,30 @@ const StudentFormPage: FC = () => {
 												  } (${Math.round(questionValue.size / 1024)} KB)`
 												: 'ไฟล์ที่เลือก'}
 										</button>
-										<button
-											type='button'
-											onClick={() => {
-												handleFieldChange(
-													field._id!,
-													question.question_id,
-													null
-												);
-											}}
-											className={`ml-2 text-red-500 hover:text-red-700 text-xs px-2 py-1 rounded ${
-												!isEditMode ? 'cursor-not-allowed opacity-50' : ''
-											}`}
-											disabled={!isEditMode}
-										>
-											ลบ
-										</button>
+										{isEditMode && (
+											<button
+												type='button'
+												onClick={() => {
+													handleFieldChange(
+														field._id!,
+														question.question_id,
+														null
+													);
+												}}
+												className='ml-2 text-red-500 hover:text-red-700 text-xs px-2 py-1 rounded'
+											>
+												ลบ
+											</button>
+										)}
 									</div>
 								</div>
 							</div>
+						) : (
+							!isEditMode && (
+								<div className='text-sm text-gray-600 bg-gray-50 p-2 rounded'>
+									ไม่มีไฟล์
+								</div>
+							)
 						)}
 					</div>
 				);

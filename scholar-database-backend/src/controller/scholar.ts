@@ -210,6 +210,27 @@ const ScholarController = {
 			return c.json(...ErrorResponse(e));
 		}
 	},
+
+	getAnalytics: async (c: Context) => {
+		try {
+			const id = c.req.param('id');
+
+			if (!id) return c.json(...FailedResponse('ไม่พบ ID ทุนการศึกษา'));
+			if (!isValidObjectId(id))
+				return c.json(...FailedResponse('รูปแบบ ID ทุนการศึกษาไม่ถูกต้อง'));
+
+			// Check if scholar exists
+			const scholar = await ScholarModel.getById(id);
+			if (!scholar) return c.json(...FailedResponse('ไม่พบทุนการศึกษา', 404));
+
+			const analytics = await StudentModel.generateAnalytics(id);
+			
+			return c.json(...SuccessResponse('ดึงข้อมูลสถิติสำเร็จ', analytics));
+		} catch (e) {
+			console.error(e);
+			return c.json(...ErrorResponse(e));
+		}
+	},
 };
 
 export { ScholarController };

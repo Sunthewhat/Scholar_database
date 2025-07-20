@@ -449,6 +449,293 @@ const StudentModel = {
 
 		return csvLines.join('\n');
 	},
+
+	generateAnalytics: async (scholarId: string) => {
+		// Get all students for the scholar
+		const students = await StudentModel.getByScholar(scholarId);
+		
+		if (students.length === 0) {
+			return { totalStudents: 0, questions: [] };
+		}
+
+		// Get scholar fields to get question definitions
+		const { ScholarFieldModel } = await import('@/model/scholarField');
+		const scholarFields = await ScholarFieldModel.getByScholarId(scholarId);
+		
+		// Create question definitions map
+		const questionDefinitions = new Map<string, any>();
+		scholarFields.forEach((field: any) => {
+			if (field.questions && Array.isArray(field.questions)) {
+				field.questions.forEach((question: any) => {
+					if (question.question_id) {
+						questionDefinitions.set(question.question_id, {
+							id: question.question_id,
+							label: question.question_label || question.question_id,
+							type: question.question_type,
+							options: question.options || [],
+							allowOther: question.allow_other || false
+						});
+					}
+				});
+			}
+		});
+
+		// Analyze each question
+		const questionAnalytics: any[] = [];
+
+		questionDefinitions.forEach((questionDef, questionId) => {
+			// Skip name, surname, and file upload fields for analytics
+			const questionLabel = questionDef.label.toLowerCase();
+			if (questionLabel.includes('name') || questionLabel.includes('surname') || 
+				questionLabel.includes('ชื่อ') || questionLabel.includes('นามสกุล') ||
+				questionDef.type === 'file_upload') {
+				return;
+			}
+
+			const analytics: any = {
+				questionId: questionDef.id,
+				questionLabel: questionDef.label,
+				questionType: questionDef.type,
+				totalResponses: 0,
+				chartType: 'bar', // default
+				chartData: {
+					labels: [],
+					datasets: [{
+						label: 'Responses',
+						data: [],
+						backgroundColor: [
+							'#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF',
+							'#FF9F40', '#FF6384', '#C9CBCF', '#4BC0C0', '#FF6384'
+						]
+					}]
+				}
+			};
+
+			// Collect all responses for this question
+			const responses: any[] = [];
+			students.forEach(student => {
+				if (student.form_data) {
+					Object.values(student.form_data).forEach((fieldData: any) => {
+						if (fieldData && typeof fieldData === 'object' && fieldData[questionId]) {
+							let value = fieldData[questionId];
+							
+							// Handle 'other' responses
+							if (value === 'other' && fieldData[`${questionId}_other`]) {
+								value = fieldData[`${questionId}_other`];
+							} else if (Array.isArray(value) && value.includes('other') && fieldData[`${questionId}_other`]) {
+								value = value.map((item: any) => 
+									item === 'other' ? fieldData[`${questionId}_other`] : item
+								);
+							}
+							
+							responses.push(value);
+						}
+					});
+				}
+			});
+
+			analytics.totalResponses = responses.length;
+
+			// Analyze based on question type
+			switch (questionDef.type) {
+				case 'radio':
+				case 'dropdown':
+					analytics.chartType = 'doughnut';
+					const singleChoiceCounts = new Map<string, number>();
+					responses.forEach(response => {
+						if (response && response !== '') {
+							const key = String(response);
+							singleChoiceCounts.set(key, (singleChoiceCounts.get(key) || 0) + 1);
+						}
+					});
+					
+					// Sort entries - numeric values ascending, text values alphabetically
+					const sortedSingleEntries = Array.from(singleChoiceCounts.entries()).sort((a, b) => {
+						const aNum = parseFloat(a[0]);
+						const bNum = parseFloat(b[0]);
+						
+						// If both are numbers, sort numerically
+						if (!isNaN(aNum) && !isNaN(bNum)) {
+							return aNum - bNum;
+						}
+						// Otherwise sort alphabetically
+						return a[0].localeCompare(b[0]);
+					});
+					
+					analytics.chartData.labels = sortedSingleEntries.map(entry => entry[0]);
+					analytics.chartData.datasets[0].data = sortedSingleEntries.map(entry => entry[1]);
+					break;
+
+				case 'checkbox':
+					analytics.chartType = 'bar';
+					const checkboxCounts = new Map<string, number>();
+					responses.forEach(response => {
+						if (Array.isArray(response)) {
+							response.forEach(item => {
+								if (item && item !== '') {
+									const key = String(item);
+									checkboxCounts.set(key, (checkboxCounts.get(key) || 0) + 1);
+								}
+							});
+						}
+					});
+					
+					// Sort entries - numeric values ascending, text values alphabetically
+					const sortedCheckboxEntries = Array.from(checkboxCounts.entries()).sort((a, b) => {
+						const aNum = parseFloat(a[0]);
+						const bNum = parseFloat(b[0]);
+						
+						// If both are numbers, sort numerically
+						if (!isNaN(aNum) && !isNaN(bNum)) {
+							return aNum - bNum;
+						}
+						// Otherwise sort alphabetically
+						return a[0].localeCompare(b[0]);
+					});
+					
+					analytics.chartData.labels = sortedCheckboxEntries.map(entry => entry[0]);
+					analytics.chartData.datasets[0].data = sortedCheckboxEntries.map(entry => entry[1]);
+					break;
+
+				case 'short_answer':
+				case 'long_answer':
+					// Check if all responses are numeric
+					const numericResponses = responses
+						.filter(response => response && response !== '')
+						.map(response => {
+							const num = parseFloat(String(response));
+							return isNaN(num) ? null : num;
+						})
+						.filter(num => num !== null);
+
+					if (numericResponses.length > 0 && numericResponses.length === responses.filter(r => r && r !== '').length) {
+						// All responses are numeric - create range analysis
+						analytics.chartType = 'bar';
+						analytics.isNumeric = true;
+						
+						const min = Math.min(...numericResponses);
+						const max = Math.max(...numericResponses);
+						const range = max - min;
+						const binCount = Math.min(10, Math.max(5, Math.ceil(Math.sqrt(numericResponses.length))));
+						const binSize = range / binCount;
+
+						const bins = Array.from({ length: binCount }, (_, i) => ({
+							label: `${(min + i * binSize).toFixed(1)}-${(min + (i + 1) * binSize).toFixed(1)}`,
+							count: 0
+						}));
+
+						numericResponses.forEach(value => {
+							const binIndex = Math.min(Math.floor((value - min) / binSize), binCount - 1);
+							bins[binIndex].count++;
+						});
+
+						analytics.chartData.labels = bins.map(bin => bin.label);
+						analytics.chartData.datasets[0].data = bins.map(bin => bin.count);
+						analytics.statistics = {
+							min,
+							max,
+							average: numericResponses.reduce((sum, val) => sum + val, 0) / numericResponses.length,
+							count: numericResponses.length
+						};
+					} else {
+						// Text responses - show most common responses
+						analytics.chartType = 'bar';
+						analytics.isNumeric = false;
+						const textCounts = new Map<string, number>();
+						responses.forEach(response => {
+							if (response && response !== '') {
+								const key = String(response);
+								textCounts.set(key, (textCounts.get(key) || 0) + 1);
+							}
+						});
+						
+						// Show top 10 most common responses, sorted by frequency (highest first)
+						const sortedEntries = Array.from(textCounts.entries())
+							.sort((a, b) => {
+								// First sort by count (descending)
+								if (b[1] !== a[1]) {
+									return b[1] - a[1];
+								}
+								// If counts are equal, sort by value (ascending for numbers, alphabetically for text)
+								const aNum = parseFloat(a[0]);
+								const bNum = parseFloat(b[0]);
+								if (!isNaN(aNum) && !isNaN(bNum)) {
+									return aNum - bNum;
+								}
+								return a[0].localeCompare(b[0]);
+							})
+							.slice(0, 10);
+						
+						analytics.chartData.labels = sortedEntries.map(entry => entry[0]);
+						analytics.chartData.datasets[0].data = sortedEntries.map(entry => entry[1]);
+					}
+					break;
+
+				case 'date':
+					analytics.chartType = 'line';
+					const dateCounts = new Map<string, number>();
+					responses.forEach(response => {
+						if (response && response !== '') {
+							// Group by month-year
+							const date = new Date(response);
+							if (!isNaN(date.getTime())) {
+								const monthYear = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+								dateCounts.set(monthYear, (dateCounts.get(monthYear) || 0) + 1);
+							}
+						}
+					});
+					
+					const sortedDates = Array.from(dateCounts.entries()).sort();
+					analytics.chartData.labels = sortedDates.map(entry => entry[0]);
+					analytics.chartData.datasets[0].data = sortedDates.map(entry => entry[1]);
+					analytics.chartData.datasets[0].borderColor = '#36A2EB';
+					analytics.chartData.datasets[0].backgroundColor = 'rgba(54, 162, 235, 0.2)';
+					break;
+
+				case 'time':
+					analytics.chartType = 'bar';
+					const hourCounts = new Map<string, number>();
+					responses.forEach(response => {
+						if (response && response !== '') {
+							// Group by hour
+							const time = String(response);
+							const hour = time.split(':')[0];
+							if (hour) {
+								const hourLabel = `${hour}:00`;
+								hourCounts.set(hourLabel, (hourCounts.get(hourLabel) || 0) + 1);
+							}
+						}
+					});
+					
+					analytics.chartData.labels = Array.from(hourCounts.keys()).sort();
+					analytics.chartData.datasets[0].data = analytics.chartData.labels.map((label: string) => hourCounts.get(label) || 0);
+					break;
+
+				case 'table':
+					analytics.chartType = 'bar';
+					analytics.chartData.labels = ['Table Responses'];
+					analytics.chartData.datasets[0].data = [responses.length];
+					analytics.note = 'Table data requires custom analysis';
+					break;
+
+
+				default:
+					analytics.chartType = 'bar';
+					analytics.chartData.labels = ['Responses'];
+					analytics.chartData.datasets[0].data = [responses.length];
+					break;
+			}
+
+			questionAnalytics.push(analytics);
+		});
+
+		return {
+			totalStudents: students.length,
+			completedStudents: students.filter(s => s.status === 'completed').length,
+			incompleteStudents: students.filter(s => s.status === 'incomplete').length,
+			questions: questionAnalytics
+		};
+	},
 };
 
 export { StudentModel };
