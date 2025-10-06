@@ -20,7 +20,7 @@ const HomeLayout: FC<HomeLayoutProps> = ({ children, onSearch, searchQuery, sear
 
 	return (
 		<main className="h-screen w-screen bg-gradient-to-b from-violet-gd0 to-violet-gd100 overflow-scroll relative">
-			{/* <main className='h-screen w-screen bg-gradient-to-b from-violet-gd0 to-violet-gd100 overflow-hidden relative'> */}
+			{/* <main className='h-screen w-screen bg-gradient-to-b from-violet-gd0 to-violet-gd100 relative'> */}
 			<div className="fixed inset-0 w-full h-full">
 				{Array.from({ length: rows }, (_, rowIndex) => (
 					<div

@@ -89,6 +89,7 @@ const ScholarDetailPage: FC = () => {
 		} else {
 			setSearchResults([]);
 		}
+	// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [searchQuery, searchType]);
 
 	// Create new student
@@ -310,7 +311,7 @@ const ScholarDetailPage: FC = () => {
 	return (
 		<AuthWrapper>
 			<HomeLayout onSearch={handleSearch} searchQuery={searchQuery} searchType={searchType}>
-				<div className="w-3/4 h-full flex flex-col mx-auto mt-24 overflow-scroll scrollbar-hide">
+				<div className="w-3/4 h-full flex flex-col mx-auto mt-24 scrollbar-hide">
 					{/* Scholar Information Section */}
 					<div className="w-3/4 mb-10">
 						<h1 className="text-3xl font-bold text-black mb-2">{scholar.name}</h1>
