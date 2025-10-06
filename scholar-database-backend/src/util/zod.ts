@@ -54,7 +54,7 @@ export const ValidatePayload = async <T>(
 		};
 	}
 };
-export const ValidatorSchema: any = {
+export const ValidatorSchema = {
 	AuthPayload: {
 		login: z.object({
 			username: z.string({ required_error: 'Missing username' }).min(1),
@@ -63,6 +63,11 @@ export const ValidatorSchema: any = {
 		create: z.object({
 			username: z.string({ required_error: 'Missing username' }).min(1),
 			password: z.string({ required_error: 'Missing password' }).min(1),
+			firstname: z.string({ required_error: 'Missing firstname' }).min(1),
+			lastname: z.string({ required_error: 'Missing lastname' }).min(1),
+		}),
+		createByAdmin: z.object({
+			username: z.string({ required_error: 'Missing username' }).min(1),
 			firstname: z.string({ required_error: 'Missing firstname' }).min(1),
 			lastname: z.string({ required_error: 'Missing lastname' }).min(1),
 		}),
@@ -101,29 +106,25 @@ export const ValidatorSchema: any = {
 		}),
 	},
 	ScholarFieldPayload: {
-		validationRule: z
-			.object({
-				min_length: z.number().optional(),
-				max_length: z.number().optional(),
-				required_files: z.number().optional(),
-				max_file_size: z.number().optional(),
-				allowed_extensions: z.array(z.string()).optional(),
-				min_date: z.date().optional(),
-				max_date: z.date().optional(),
-			})
-			.optional(),
-		tableConfig: z
-			.object({
-				rows: z
-					.number({ required_error: 'Number of rows is required' })
-					.min(1, { message: 'Must have at least 1 row' }),
-				columns: z
-					.number({ required_error: 'Number of columns is required' })
-					.min(1, { message: 'Must have at least 1 column' }),
-				row_labels: z.array(z.string()).optional(),
-				column_labels: z.array(z.string()).optional(),
-			})
-			.optional(),
+		validationRule: z.object({
+			min_length: z.number().optional(),
+			max_length: z.number().optional(),
+			required_files: z.number().optional(),
+			max_file_size: z.number().optional(),
+			allowed_extensions: z.array(z.string()).optional(),
+			min_date: z.date().optional(),
+			max_date: z.date().optional(),
+		}),
+		tableConfig: z.object({
+			rows: z
+				.number({ required_error: 'Number of rows is required' })
+				.min(1, { message: 'Must have at least 1 row' }),
+			columns: z
+				.number({ required_error: 'Number of columns is required' })
+				.min(1, { message: 'Must have at least 1 column' }),
+			row_labels: z.array(z.string()).optional(),
+			column_labels: z.array(z.string()).optional(),
+		}),
 		question: z.object({
 			question_id: z.string({ required_error: 'Question ID is required' }).min(1),
 			question_type: z.enum(
@@ -150,10 +151,10 @@ export const ValidatorSchema: any = {
 				.boolean({ invalid_type_error: 'Allow other field must be boolean' })
 				.default(false)
 				.optional(),
-			validation: z.lazy(() => ValidatorSchema.ScholarFieldPayload.validationRule),
+			validation: z.lazy((): z.ZodOptional<z.ZodObject<any>> => ValidatorSchema.ScholarFieldPayload.validationRule.optional()),
 			placeholder: z.string().optional(),
 			help_text: z.string().optional(),
-			table_config: z.lazy(() => ValidatorSchema.ScholarFieldPayload.tableConfig),
+			table_config: z.lazy((): z.ZodOptional<z.ZodObject<any>> => ValidatorSchema.ScholarFieldPayload.tableConfig.optional()),
 			file_types: z.array(z.string()).optional(),
 			allow_multiple: z
 				.boolean({ invalid_type_error: 'Allow multiple files field must be boolean' })
@@ -167,7 +168,7 @@ export const ValidatorSchema: any = {
 			field_label: z.string({ required_error: 'Field label is required' }).min(1),
 			field_description: z.string().optional(),
 			order: z.number({ required_error: 'Field order is required' }).min(0),
-			questions: z.array(z.lazy(() => ValidatorSchema.ScholarFieldPayload.question)),
+			questions: z.array(z.lazy((): z.ZodObject<any> => ValidatorSchema.ScholarFieldPayload.question)),
 		}),
 		updateField: z.object({
 			field_name: z.string().min(1, { message: 'Field name cannot be empty' }).optional(),
@@ -175,11 +176,11 @@ export const ValidatorSchema: any = {
 			field_description: z.string().optional(),
 			order: z.number().min(0).optional(),
 			questions: z
-				.array(z.lazy(() => ValidatorSchema.ScholarFieldPayload.question))
+				.array(z.lazy((): z.ZodObject<any> => ValidatorSchema.ScholarFieldPayload.question))
 				.optional(),
 		}),
-		createQuestion: z.lazy(() => ValidatorSchema.ScholarFieldPayload.question),
-		updateQuestion: z.lazy(() => ValidatorSchema.ScholarFieldPayload.question.partial()),
+		createQuestion: z.lazy((): z.ZodObject<any> => ValidatorSchema.ScholarFieldPayload.question),
+		updateQuestion: z.lazy((): z.ZodObject<any> => ValidatorSchema.ScholarFieldPayload.question.partial()),
 		reorderFields: z.object({
 			scholar_id: z.string({ required_error: 'Scholar ID is required' }).min(1),
 			field_orders: z.array(
