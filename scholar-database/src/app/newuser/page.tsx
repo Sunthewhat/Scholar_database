@@ -136,8 +136,8 @@ const NewUserPage: FC = () => {
 
 	return (
 		<AuthWrapper requiredRole="admin">
-			<main className="h-screen w-screen bg-gradient-to-b from-violet-gd0 to-violet-gd100 overflow-hidden">
-				<div className="relative flex flex-col mt-24 w-[90%] mx-auto h-full pt-10">
+			<main className="h-screen w-screen bg-gradient-to-b from-violet-gd0 to-violet-gd100 overflow-auto">
+				<div className="relative flex flex-col mt-24 w-[90%] mx-auto pt-10 pb-10">
 					<h1 className="text-2xl font-semibold text-center mb-8">
 						สร้างบัญชีผู้ใช้ใหม่
 					</h1>
