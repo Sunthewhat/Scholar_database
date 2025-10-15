@@ -102,8 +102,11 @@ const ScholarDocumentsPage: FC = () => {
 	};
 
 	const handleDownloadDocument = (fileUrl: string, fileName: string) => {
+		// Extract the base URL without /api/v1 since fileUrl already contains it
+		const storageBaseUrl = process.env.NEXT_PUBLIC_STORAGE_URL?.replace('/api/v1', '') || 'http://localhost:9000';
+		const fullUrl = `${storageBaseUrl}${fileUrl}`;
 		// Open the file in a new tab
-		window.open(fileUrl, "_blank");
+		window.open(fullUrl, "_blank");
 	};
 
 	if (isScholarLoading) {
