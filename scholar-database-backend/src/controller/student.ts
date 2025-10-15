@@ -140,6 +140,12 @@ const StudentController = {
 
 			if (!student) return c.json(...FailedResponse('ไม่พบนักเรียน'));
 
+			console.log('Student data with profile_image:', {
+				id: student._id,
+				profile_image: student.profile_image,
+				hasProfileImage: !!student.profile_image
+			});
+
 			return c.json(...SuccessResponse('ดึงข้อมูลนักเรียนสำเร็จ', student));
 		} catch (e) {
 			console.error(e);
@@ -567,6 +573,88 @@ const StudentController = {
 			const students = await StudentModel.searchByScholar(scholarId, keyword);
 
 			return c.json(...SuccessResponse('ค้นหานักเรียนสำเร็จ', students));
+		} catch (e) {
+			console.error(e);
+			return c.json(...ErrorResponse(e));
+		}
+	},
+
+	updateProfileImage: async (c: Context) => {
+		try {
+			const id = c.req.param('id');
+
+			if (!id) return c.json(...FailedResponse('ไม่พบ ID นักเรียน'));
+			if (!isValidObjectId(id))
+				return c.json(...FailedResponse('รูปแบบ ID นักเรียนไม่ถูกต้อง'));
+
+			const existingStudent = await StudentModel.getById(id);
+			if (!existingStudent) return c.json(...FailedResponse('ไม่พบนักเรียน'));
+
+			const body = await c.req.parseBody();
+			const file = body['profile_image'];
+
+			if (!file || !(file instanceof File)) {
+				return c.json(...FailedResponse('กรุณาอัปโหลดรูปภาพ'));
+			}
+
+			// Delete old profile image if exists
+			if (existingStudent.profile_image) {
+				const oldFilename = StorageUtil.extractFilenameFromUrl(existingStudent.profile_image);
+				if (oldFilename) {
+					await StorageUtil.deleteFile(oldFilename);
+				}
+			}
+
+			// Upload new profile image
+			const uploadedFile = await StorageUtil.uploadFile(file);
+
+			// Update student with new profile image URL
+			const updatedStudent = await StudentModel.update(id, {
+				profile_image: uploadedFile.data?.url,
+			});
+
+			if (!updatedStudent) return c.json(...FailedResponse('ไม่พบนักเรียน'));
+
+			console.log('Updated student with profile_image:', {
+				id: updatedStudent._id,
+				profile_image: updatedStudent.profile_image,
+				uploadedUrl: uploadedFile.data?.url
+			});
+
+			return c.json(...SuccessResponse('อัปเดตรูปโปรไฟล์สำเร็จ!', updatedStudent));
+		} catch (e) {
+			console.error(e);
+			return c.json(...ErrorResponse(e));
+		}
+	},
+
+	deleteProfileImage: async (c: Context) => {
+		try {
+			const id = c.req.param('id');
+
+			if (!id) return c.json(...FailedResponse('ไม่พบ ID นักเรียน'));
+			if (!isValidObjectId(id))
+				return c.json(...FailedResponse('รูปแบบ ID นักเรียนไม่ถูกต้อง'));
+
+			const existingStudent = await StudentModel.getById(id);
+			if (!existingStudent) return c.json(...FailedResponse('ไม่พบนักเรียน'));
+
+			// Delete profile image file if exists
+			if (existingStudent.profile_image) {
+				const filename = StorageUtil.extractFilenameFromUrl(existingStudent.profile_image);
+				if (filename) {
+					await StorageUtil.deleteFile(filename);
+				}
+			}
+
+			// Update student to remove profile image URL
+			const updatedStudent = await StudentModel.update(id, {
+				profile_image: undefined,
+			});
+
+			if (!updatedStudent) return c.json(...FailedResponse('ไม่พบนักเรียน'));
+
+			return c.json(...SuccessResponse('ลบรูปโปรไฟล์สำเร็จ!', updatedStudent));
 		} catch (e) {
 			console.error(e);
 			return c.json(...ErrorResponse(e));

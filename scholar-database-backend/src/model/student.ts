@@ -4,6 +4,7 @@ type StudentType = {
 	scholar_id: mongoose.Types.ObjectId;
 	form_data: Record<string, any>;
 	fullname?: string;
+	profile_image?: string;
 	status: 'incomplete' | 'completed';
 	submitted_at?: Date;
 	created_at: Date;
@@ -15,6 +16,7 @@ const studentSchema = new mongoose.Schema<StudentType>(
 		scholar_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Scholar', required: true },
 		form_data: { type: mongoose.Schema.Types.Mixed, required: true, default: {} },
 		fullname: { type: String },
+		profile_image: { type: String },
 		status: {
 			type: String,
 			enum: ['incomplete', 'completed'],

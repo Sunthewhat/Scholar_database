@@ -49,4 +49,10 @@ StudentRouter.post('/:id/submit', StudentController.submitForm);
 // POST /student/temp-permission/generate - Generate temporary permission token for student
 StudentRouter.post('/temp-permission/generate', StudentController.generateTempPermission);
 
+// PUT /student/:id/profile-image - Update student profile image
+StudentRouter.put('/:id/profile-image', StudentController.updateProfileImage);
+
+// DELETE /student/:id/profile-image - Delete student profile image
+StudentRouter.delete('/:id/profile-image', StudentController.deleteProfileImage);
+
 export { StudentRouter };

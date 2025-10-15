@@ -8,6 +8,7 @@ export type Student = {
 	form_data: Record<string, any>;
 	status: StudentStatus;
 	fullname: string;
+	profile_image?: string;
 	submitted_at?: Date;
 	created_at?: Date;
 	updated_at?: Date;

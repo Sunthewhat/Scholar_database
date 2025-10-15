@@ -33,6 +33,8 @@ const StudentFormPage: FC = () => {
 	const [error, setError] = useState<string | null>(null);
 	const [showSuccessModal, setShowSuccessModal] = useState(false);
 	const [isEditMode, setIsEditMode] = useState(false);
+	const [profileImage, setProfileImage] = useState<File | null>(null);
+	const [isUploadingImage, setIsUploadingImage] = useState(false);
 
 	// Check is it first created student
 	useEffect(() => {
@@ -106,6 +108,53 @@ const StudentFormPage: FC = () => {
 		const scholarId =
 			typeof student.scholar_id === 'object' ? student.scholar_id._id : student.scholar_id;
 		router.push(`/scholar/${scholarId}`);
+	};
+
+	// Handle profile image upload
+	const handleProfileImageUpload = async (file: File) => {
+		try {
+			setIsUploadingImage(true);
+			const formData = new FormData();
+			formData.append('profile_image', file);
+
+			const response = await Axios.put(`/student/${studentId}/profile-image`, formData, {
+				headers: {
+					'Content-Type': 'multipart/form-data',
+				},
+			});
+
+			if (response.status === 200 && response.data.success) {
+				setStudent(response.data.data);
+				setProfileImage(null);
+			} else {
+				setError(response.data.msg || 'เกิดข้อผิดพลาดในการอัปโหลดรูปภาพ');
+			}
+		} catch (err: any) {
+			console.error('Error uploading profile image:', err);
+			setError(err.response?.data?.msg || 'เกิดข้อผิดพลาดในการอัปโหลดรูปภาพ');
+		} finally {
+			setIsUploadingImage(false);
+		}
+	};
+
+	// Handle profile image deletion
+	const handleProfileImageDelete = async () => {
+		try {
+			setIsUploadingImage(true);
+			const response = await Axios.delete(`/student/${studentId}/profile-image`);
+
+			if (response.status === 200 && response.data.success) {
+				setStudent(response.data.data);
+				setProfileImage(null);
+			} else {
+				setError(response.data.msg || 'เกิดข้อผิดพลาดในการลบรูปภาพ');
+			}
+		} catch (err: any) {
+			console.error('Error deleting profile image:', err);
+			setError(err.response?.data?.msg || 'เกิดข้อผิดพลาดในการลบรูปภาพ');
+		} finally {
+			setIsUploadingImage(false);
+		}
 	};
 
 	// Check if a file is an image
@@ -739,10 +788,83 @@ const StudentFormPage: FC = () => {
 		<AuthWrapper>
 			<HomeLayout>
 				<div className='w-3/4 h-full flex flex-col mx-auto pt-16 mt-12'>
-					<div className='flex items-center justify-between mb-8'>
+					<div className='flex items-start justify-between mb-8'>
 						<h1 className='text-2xl font-semibold'>
 							{isEditMode ? 'กรอกข้อมูลนักเรียน' : 'ข้อมูลนักเรียน'}
 						</h1>
+
+						{/* Profile Image Section */}
+						<div className='flex flex-col items-center gap-2'>
+							<div className='relative'>
+								{student.profile_image ? (
+									<div className='relative w-32 h-32 rounded-full overflow-hidden border-4 border-violet-3 shadow-lg'>
+										<img
+											src={getImageUrl(student.profile_image)}
+											alt='Profile'
+											className='w-full h-full object-cover'
+											onError={(e) => {
+												e.currentTarget.src = '/assets/user.svg';
+											}}
+										/>
+									</div>
+								) : (
+									<div className='w-32 h-32 rounded-full bg-gray-200 border-4 border-gray-300 flex items-center justify-center'>
+										<svg
+											className='w-16 h-16 text-gray-400'
+											fill='currentColor'
+											viewBox='0 0 20 20'
+										>
+											<path
+												fillRule='evenodd'
+												d='M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z'
+												clipRule='evenodd'
+											/>
+										</svg>
+									</div>
+								)}
+							</div>
+
+							{/* Upload/Delete Buttons - Only show in edit mode */}
+							{isEditMode && (
+								<div className='flex gap-2'>
+									<label
+										className={`px-3 py-1 text-sm rounded-lg cursor-pointer transition-colors ${
+											isUploadingImage
+												? 'bg-gray-300 cursor-not-allowed'
+												: 'bg-violet-3 hover:bg-violet-2 text-white'
+										}`}
+									>
+										{isUploadingImage ? 'กำลังอัปโหลด...' : 'อัปโหลดรูป'}
+										<input
+											type='file'
+											accept='image/*'
+											className='hidden'
+											disabled={isUploadingImage}
+											onChange={(e) => {
+												const file = e.target.files?.[0];
+												if (file) {
+													handleProfileImageUpload(file);
+													e.target.value = '';
+												}
+											}}
+										/>
+									</label>
+									{student.profile_image && (
+										<button
+											onClick={handleProfileImageDelete}
+											disabled={isUploadingImage}
+											className={`px-3 py-1 text-sm rounded-lg transition-colors ${
+												isUploadingImage
+													? 'bg-gray-300 cursor-not-allowed'
+													: 'bg-red hover:bg-red-600 text-white'
+											}`}
+										>
+											ลบรูป
+										</button>
+									)}
+								</div>
+							)}
+						</div>
 					</div>
 
 					{error && (
