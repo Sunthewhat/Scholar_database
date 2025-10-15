@@ -34,4 +34,13 @@ ScholarRouter.delete('/:id', ScholarController.delete);
 // PATCH /scholar/:id/status/:status - Set scholar status (active/inactive)
 ScholarRouter.patch('/:id/status/:status', ScholarController.setStatus);
 
+// GET /scholar/:id/documents - Get all documents for a scholar
+ScholarRouter.get('/:id/documents', ScholarController.getDocuments);
+
+// POST /scholar/:id/documents - Upload a document for a scholar
+ScholarRouter.post('/:id/documents', ScholarController.uploadDocument);
+
+// DELETE /scholar/:id/documents/:documentId - Delete a document from a scholar
+ScholarRouter.delete('/:id/documents/:documentId', ScholarController.deleteDocument);
+
 export { ScholarRouter };

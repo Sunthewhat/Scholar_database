@@ -224,8 +224,114 @@ const ScholarController = {
 			if (!scholar) return c.json(...FailedResponse('ไม่พบทุนการศึกษา', 404));
 
 			const analytics = await StudentModel.generateAnalytics(id);
-			
+
 			return c.json(...SuccessResponse('ดึงข้อมูลสถิติสำเร็จ', analytics));
+		} catch (e) {
+			console.error(e);
+			return c.json(...ErrorResponse(e));
+		}
+	},
+
+	uploadDocument: async (c: Context) => {
+		try {
+			const id = c.req.param('id');
+
+			if (!id) return c.json(...FailedResponse('ไม่พบ ID ทุนการศึกษา'));
+			if (!isValidObjectId(id))
+				return c.json(...FailedResponse('รูปแบบ ID ทุนการศึกษาไม่ถูกต้อง'));
+
+			const scholar = await ScholarModel.getById(id);
+			if (!scholar) return c.json(...FailedResponse('ไม่พบทุนการศึกษา', 404));
+
+			const body = await c.req.parseBody();
+			const file = body['document'];
+			const fileName = body['file_name'] as string;
+
+			if (!file || !(file instanceof File)) {
+				return c.json(...FailedResponse('กรุณาอัปโหลดไฟล์'));
+			}
+
+			if (!fileName) {
+				return c.json(...FailedResponse('กรุณาระบุชื่อไฟล์'));
+			}
+
+			// Upload file
+			const uploadedFile = await StorageUtil.uploadFile(file);
+
+			// Create document object
+			const document = {
+				document_id: `doc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+				file_name: fileName,
+				file_url: uploadedFile.data?.url || '',
+				file_type: file.type || 'application/octet-stream',
+				uploaded_at: new Date(),
+			};
+
+			// Add document to scholar
+			const updatedScholar = await ScholarModel.addDocument(id, document);
+
+			if (!updatedScholar) return c.json(...FailedResponse('ไม่พบทุนการศึกษา'));
+
+			return c.json(...SuccessResponse('อัปโหลดไฟล์สำเร็จ!', updatedScholar));
+		} catch (e) {
+			console.error(e);
+			return c.json(...ErrorResponse(e));
+		}
+	},
+
+	deleteDocument: async (c: Context) => {
+		try {
+			const id = c.req.param('id');
+			const documentId = c.req.param('documentId');
+
+			if (!id) return c.json(...FailedResponse('ไม่พบ ID ทุนการศึกษา'));
+			if (!documentId) return c.json(...FailedResponse('ไม่พบ ID เอกสาร'));
+			if (!isValidObjectId(id))
+				return c.json(...FailedResponse('รูปแบบ ID ทุนการศึกษาไม่ถูกต้อง'));
+
+			const scholar = await ScholarModel.getById(id);
+			if (!scholar) return c.json(...FailedResponse('ไม่พบทุนการศึกษา', 404));
+
+			// Find the document
+			const document = scholar.documents?.find((doc: any) => doc.document_id === documentId);
+			if (!document) return c.json(...FailedResponse('ไม่พบเอกสาร', 404));
+
+			// Delete file from storage
+			const filename = StorageUtil.extractFilenameFromUrl(document.file_url);
+			if (filename) {
+				try {
+					await StorageUtil.deleteFile(filename);
+				} catch (fileError) {
+					console.warn(`Failed to delete file ${filename}:`, fileError);
+				}
+			}
+
+			// Remove document from scholar
+			const updatedScholar = await ScholarModel.deleteDocument(id, documentId);
+
+			if (!updatedScholar) return c.json(...FailedResponse('ไม่พบทุนการศึกษา'));
+
+			return c.json(...SuccessResponse('ลบไฟล์สำเร็จ!', updatedScholar));
+		} catch (e) {
+			console.error(e);
+			return c.json(...ErrorResponse(e));
+		}
+	},
+
+	getDocuments: async (c: Context) => {
+		try {
+			const id = c.req.param('id');
+
+			if (!id) return c.json(...FailedResponse('ไม่พบ ID ทุนการศึกษา'));
+			if (!isValidObjectId(id))
+				return c.json(...FailedResponse('รูปแบบ ID ทุนการศึกษาไม่ถูกต้อง'));
+
+			const scholar = await ScholarModel.getById(id);
+			if (!scholar) return c.json(...FailedResponse('ไม่พบทุนการศึกษา', 404));
+
+			const documents = await ScholarModel.getDocuments(id);
+
+			return c.json(...SuccessResponse('ดึงข้อมูลเอกสารสำเร็จ', documents));
 		} catch (e) {
 			console.error(e);
 			return c.json(...ErrorResponse(e));
