@@ -55,12 +55,9 @@ export const SectionItem: FC<SectionItemProps> = ({
 				<input
 					type='text'
 					value={section.field_label}
-					onChange={(e) => section.field_name !== 'personal_information' && onUpdateSectionLabel(e.target.value)}
-					className={`text-lg font-semibold border-2 border-grey h-10 rounded-md flex-1 px-4 py-2 ${
-						section.field_name === 'personal_information' ? 'bg-gray-100 cursor-not-allowed' : ''
-					}`}
+					onChange={(e) => onUpdateSectionLabel(e.target.value)}
+					className='text-lg font-semibold border-2 border-grey h-10 rounded-md flex-1 px-4 py-2'
 					placeholder='ชื่อหัวข้อ'
-					readOnly={section.field_name === 'personal_information'}
 				/>
 				<div className='flex gap-2 ml-6'>
 					{/* Delete Button - Hidden for personal information section */}
