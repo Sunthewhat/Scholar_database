@@ -121,21 +121,27 @@ const NavBar: FC<NavBarProps> = ({
 	};
 
 	return (
-		<nav className='fixed w-full top-0 left-0 h-20 flex items-center justify-between px-10 z-20 mt-4'>
+		<nav className='fixed w-full top-0 left-0 h-20 flex items-center gap-6 px-10 z-20 mt-4'>
 			<Image
 				src='/assets/logo.svg'
 				alt='logo'
-				className='w-[7%] h-16'
+				className='w-16 h-16 flex-shrink-0'
 				width={70}
 				height={70}
 				onClick={() => navigator.push('/')}
 				priority
 			/>
+			<button
+				onClick={() => navigator.push('/')}
+				className='text-violet-3 font-semibold text-lg hover:text-violet-2 transition-colors cursor-pointer whitespace-nowrap flex-shrink-0'
+			>
+				หน้าหลัก
+			</button>
 			{isShowSearch() && (
-				<div className='flex items-center gap-4 w-[80%]'>
+				<div className='flex items-center gap-4 flex-1'>
 					{path.includes('/analytics') && searchType === 'keyword' ? (
 						// Dropdown for question types in analytics
-						<div className='relative flex items-center w-[80%]'>
+						<div className='relative flex items-center flex-1'>
 							<select
 								className='w-full px-4 py-2 pr-10 rounded-full shadow-md appearance-none bg-white'
 								value={searchQuery}
@@ -175,7 +181,7 @@ const NavBar: FC<NavBarProps> = ({
 						</div>
 					) : (
 						// Regular text input for other search types
-						<form onSubmit={handleSearch} className='relative flex items-center w-[80%]'>
+						<form onSubmit={handleSearch} className='relative flex items-center flex-1'>
 							<input
 								className='w-full px-4 py-2 pr-10 rounded-full shadow-md'
 								placeholder='ค้นหา...'
@@ -193,8 +199,8 @@ const NavBar: FC<NavBarProps> = ({
 							</button>
 						</form>
 					)}
-					<div className='flex gap-1 flex-col w-[20%] text-violet-3'>
-						<label className='flex items-center gap-2 cursor-pointer'>
+					<div className='flex gap-1 flex-col text-violet-3 flex-shrink-0'>
+						<label className='flex items-center gap-2 cursor-pointer whitespace-nowrap'>
 							<input
 								type='radio'
 								name='searchType'
@@ -203,11 +209,11 @@ const NavBar: FC<NavBarProps> = ({
 								onChange={(e) =>
 									handleSearchTypeChange(e.target.value as 'name' | 'keyword')
 								}
-								className='accent-violet-3'
+								className='accent-violet-3 flex-shrink-0'
 							/>
-							<span className='text-sm'>{getSearchLabels().name}</span>
+							<span className='text-sm whitespace-nowrap'>{getSearchLabels().name}</span>
 						</label>
-						<label className='flex items-center gap-2 cursor-pointer'>
+						<label className='flex items-center gap-2 cursor-pointer whitespace-nowrap'>
 							<input
 								type='radio'
 								name='searchType'
@@ -216,26 +222,26 @@ const NavBar: FC<NavBarProps> = ({
 								onChange={(e) =>
 									handleSearchTypeChange(e.target.value as 'name' | 'keyword')
 								}
-								className='accent-violet-3'
+								className='accent-violet-3 flex-shrink-0'
 							/>
-							<span className='text-sm'>{getSearchLabels().keyword}</span>
+							<span className='text-sm whitespace-nowrap'>{getSearchLabels().keyword}</span>
 						</label>
 					</div>
 				</div>
 			)}
-			<div className='relative w-[13%]'>
+			<div className='relative flex-shrink-0'>
 				<button
 					onClick={toggleDropdown}
-					className='flex w-full max-w-48 items-center gap-2 bg-white border-violet-3 border-[2px] rounded-full px-6 py-2'
+					className='flex items-center gap-2 bg-white border-violet-3 border-[2px] rounded-full px-6 py-2 whitespace-nowrap'
 				>
 					<Image
 						src='/assets/user.svg'
 						alt='user'
-						className='w-5'
+						className='w-5 flex-shrink-0'
 						width={10}
 						height={10}
 					/>
-					<h1 className='text-md text-violet-3 font-semibold font-sans text-ellipsis w-5/6 overflow-hidden'>
+					<h1 className='text-md text-violet-3 font-semibold font-sans truncate max-w-[150px]'>
 						{userName}
 					</h1>
 				</button>
